@@ -22,6 +22,13 @@ class AttendanceCheckInRequest extends FormRequest
         ];
     }
 
+    public function messages(): array
+    {
+        return [
+            'employee_id.required' => 'Akun Anda tidak terhubung dengan profil karyawan.',
+        ];
+    }
+
     public function attributes()
     {
         return [
@@ -38,7 +45,7 @@ class AttendanceCheckInRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         $this->merge([
-            'employee_id' => Auth::user()->employeeProfile->id,
+            'employee_id' => Auth::user()?->employeeProfile?->id,
         ]);
     }
 }

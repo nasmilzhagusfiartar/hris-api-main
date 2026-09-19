@@ -11,8 +11,10 @@ use App\Interfaces\EmployeeProfileRepositoryInterface;
 use App\Interfaces\JobInformationRepositoryInterface;
 use App\Interfaces\LeaveRequestRepositoryInterface;
 use App\Interfaces\PayrollRepositoryInterface;
+use App\Interfaces\PermissionRepositoryInterface;
 use App\Interfaces\ProjectRepositoryInterface;
 use App\Interfaces\ProjectTaskRepositoryInterface;
+use App\Interfaces\RoleRepositoryInterface;
 use App\Interfaces\TeamRepositoryInterface;
 use App\Interfaces\UserRepositoryInterface;
 use App\Repositories\AttendanceRepository;
@@ -24,8 +26,10 @@ use App\Repositories\EmployeeProfileRepository;
 use App\Repositories\JobInformationRepository;
 use App\Repositories\LeaveRequestRepository;
 use App\Repositories\PayrollRepository;
+use App\Repositories\PermissionRepository;
 use App\Repositories\ProjectRepository;
 use App\Repositories\ProjectTaskRepository;
+use App\Repositories\RoleRepository;
 use App\Repositories\TeamRepository;
 use App\Repositories\UserRepository;
 use Illuminate\Support\ServiceProvider;
@@ -50,6 +54,8 @@ class RepositoryServiceProvider extends ServiceProvider
         $this->app->bind(LeaveRequestRepositoryInterface::class, LeaveRequestRepository::class);
         $this->app->bind(DashboardRepositoryInterface::class, DashboardRepository::class);
         $this->app->bind(PayrollRepositoryInterface::class, PayrollRepository::class);
+        $this->app->bind(RoleRepositoryInterface::class, RoleRepository::class);
+        $this->app->bind(PermissionRepositoryInterface::class, PermissionRepository::class);
     }
 
     /**

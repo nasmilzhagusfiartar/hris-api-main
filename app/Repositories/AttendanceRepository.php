@@ -132,7 +132,9 @@ class AttendanceRepository implements AttendanceRepositoryInterface
 
             $attendanceDto = AttendanceDto::fromArray($attendanceData);
 
-            return Attendance::create($attendanceDto->toArray());
+            $created = Attendance::create($attendanceDto->toArray());
+            $this->clearAttendanceCache();
+            return $created;
         });
     }
 
@@ -156,6 +158,7 @@ class AttendanceRepository implements AttendanceRepositoryInterface
 
             $attendanceDto = AttendanceDto::fromArrayForUpdate($updateData, $attendance);
             $attendance->update($attendanceDto->toArray());
+            $this->clearAttendanceCache();
 
             return $attendance->load(['employee.user']);
         });
@@ -165,7 +168,7 @@ class AttendanceRepository implements AttendanceRepositoryInterface
     {
         $cacheKey = CacheConstants::CACHE_KEY_ATTENDANCE_STATISTICS.now()->format('Y-m-d-H');
 
-        return cache()->remember($cacheKey, CacheConstants::ONE_HOUR, function () {
+        return cache()->remember($cacheKey, 10, function () {
             $today = now()->format('Y-m-d');
             $yesterday = now()->subDay()->format('Y-m-d');
             $lastWeekStart = now()->subWeek()->startOfWeek()->format('Y-m-d');

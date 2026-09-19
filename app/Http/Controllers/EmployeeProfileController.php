@@ -31,11 +31,11 @@ class EmployeeProfileController extends Controller implements HasMiddleware
     public static function middleware()
     {
         return [
-            new Middleware(PermissionMiddleware::using(['employee-list|employee-create|employee-edit|employee-delete']), only: ['index', 'getAllPaginated', 'show', 'getStatistics']),
+            new Middleware(PermissionMiddleware::using(['employee-list|employee-create|employee-edit|employee-delete|profile-view']), only: ['index', 'getAllPaginated', 'show', 'getStatistics', 'getPerformanceStatistics']),
             new Middleware(PermissionMiddleware::using(['employee-create']), only: ['store']),
             new Middleware(PermissionMiddleware::using(['employee-edit']), only: ['update']),
             new Middleware(PermissionMiddleware::using(['employee-delete']), only: ['destroy']),
-            new Middleware(PermissionMiddleware::using(['profile-view']), only: ['getMyProfile', 'getPerformanceStatistics']),
+            new Middleware(PermissionMiddleware::using(['profile-view']), only: ['getMyProfile']),
             new Middleware(PermissionMiddleware::using(['team-view']), only: ['getMyTeam', 'getMyTeamMembers', 'getMyTeamProjects']),
         ];
     }

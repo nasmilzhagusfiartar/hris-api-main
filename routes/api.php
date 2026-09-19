@@ -7,13 +7,23 @@ use App\Http\Controllers\EmployeeProfileController;
 use App\Http\Controllers\LeaveRequestController;
 use App\Http\Controllers\OptionController;
 use App\Http\Controllers\PayrollController;
+use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ProjectTaskController;
+use App\Http\Controllers\RoleController;
 use App\Http\Controllers\TeamController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')
     ->group(function () {
+
+        Route::get('health', function () {
+            return response()->json([
+                'status' => 'ok',
+                'message' => 'HRIS API is running smoothly!',
+                'timestamp' => now()->toIso8601String(),
+            ]);
+        });
 
         Route::post('login', [AuthController::class, 'login']);
 
@@ -86,5 +96,14 @@ Route::prefix('v1')
             // Dashboard routes
             Route::get('dashboard/statistics', [DashboardController::class, 'getStatistics']);
             Route::get('dashboard/my-statistics', [DashboardController::class, 'getEmployeeStatistics']);
+
+            // RBAC routes (Roles & Permissions)
+            Route::get('roles/all/paginated', [RoleController::class, 'getAllPaginated']);
+            Route::post('roles/{id}/assign-permissions', [RoleController::class, 'assignPermissions']);
+            Route::apiResource('roles', RoleController::class);
+
+            Route::get('permissions/grouped', [PermissionController::class, 'getGrouped']);
+            Route::get('permissions/all/paginated', [PermissionController::class, 'getAllPaginated']);
+            Route::apiResource('permissions', PermissionController::class);
         });
     });
