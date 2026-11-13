@@ -49,7 +49,7 @@ class LeaveRequestApproved extends Notification implements ShouldQueue
             ->line('Status: **Disetujui**')
             ->action('Lihat Detail', url('/my-attendance'))
             ->line('Pastikan untuk merencanakan pekerjaan kamu dengan baik sebelum cuti dimulai.')
-            ->salutation('Terima kasih, Tim HR');
+            ->salutation('Terima kasih, Tim HR HIP HRIS');
     }
 
     /**

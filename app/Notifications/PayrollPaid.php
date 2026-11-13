@@ -59,7 +59,7 @@ class PayrollPaid extends Notification implements ShouldQueue
             })
             ->action('Lihat Slip Gaji', url('/admin/my-payslips'))
             ->line('Terima kasih atas kontribusi Anda.')
-            ->salutation('Salam, Tim Finance');
+            ->salutation('Salam, Tim Finance HIP HRIS');
     }
 
     /**

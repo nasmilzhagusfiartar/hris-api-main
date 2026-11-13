@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class ProjectRepository implements ProjectRepositoryInterface
 {
@@ -116,7 +117,8 @@ class ProjectRepository implements ProjectRepositoryInterface
             $project = Project::create($projectDto->toArray());
 
             if (isset($data['photo'])) {
-                $photoPath = $data['photo']->store('project-photos', 'public');
+                $filename = Str::uuid().'.'.$data['photo']->extension();
+                $photoPath = $data['photo']->storeAs('project-photos', $filename, 'public');
                 $project->update(['photo' => $photoPath]);
             }
 
@@ -141,7 +143,8 @@ class ProjectRepository implements ProjectRepositoryInterface
                     Storage::disk('public')->delete($project->photo);
                 }
 
-                $photoPath = $data['photo']->store('project-photos', 'public');
+                $filename = Str::uuid().'.'.$data['photo']->extension();
+                $photoPath = $data['photo']->storeAs('project-photos', $filename, 'public');
                 $project->update(['photo' => $photoPath]);
             }
 

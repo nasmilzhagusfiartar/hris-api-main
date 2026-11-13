@@ -20,8 +20,22 @@ class DashboardController extends Controller implements HasMiddleware
     public static function middleware()
     {
         return [
-            new Middleware(PermissionMiddleware::using(['dashboard-view']), only: ['getStatistics', 'getEmployeeStatistics']),
+            new Middleware(PermissionMiddleware::using(['dashboard-view']), only: ['getStatistics', 'getEmployeeStatistics', 'getQuickActionCounts']),
         ];
+    }
+
+    /**
+     * Get dashboard quick action badge counts
+     */
+    public function getQuickActionCounts()
+    {
+        try {
+            $counts = $this->dashboardRepository->getQuickActionCounts(auth()->user());
+
+            return ResponseHelper::jsonResponse(true, 'Quick Action Counts Retrieved Successfully', $counts, 200);
+        } catch (\Throwable $e) {
+            return ResponseHelper::jsonResponse(false, 'Internal Server Error: '.$e->getMessage(), null, 500);
+        }
     }
 
     /**

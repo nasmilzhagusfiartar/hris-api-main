@@ -49,7 +49,7 @@ class LeaveRequestCreated extends Notification implements ShouldQueue
             ->line('Status: Menunggu Persetujuan')
             ->action('Lihat Detail', url('/my-attendance'))
             ->line('Kamu akan menerima notifikasi setelah permohonan ditinjau.')
-            ->salutation('Terima kasih, Tim HR');
+            ->salutation('Terima kasih, Tim HR HIP HRIS');
     }
 
     /**

@@ -4,6 +4,7 @@ namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\Storage;
 
 class ProjectResource extends JsonResource
 {
@@ -21,6 +22,11 @@ class ProjectResource extends JsonResource
             $progress = round(($completedTasks / $this->tasks->count()) * 100);
         }
 
+        $photoPath = $this->photo;
+        if ($photoPath && str_contains($photoPath, '/storage/')) {
+            $photoPath = ltrim(substr($photoPath, strpos($photoPath, '/storage/') + 9), '/');
+        }
+
         return [
             'id' => $this->id,
             'name' => $this->name,
@@ -30,7 +36,7 @@ class ProjectResource extends JsonResource
             'start_date' => $this->start_date,
             'end_date' => $this->end_date,
             'description' => $this->description,
-            'photo' => $this->photo ? asset('storage/'.$this->photo) : null,
+            'photo' => $photoPath ? Storage::disk('public')->url($photoPath) : null,
             'budget' => (float) (string) $this->budget,
             'progress' => $progress,
             'leader' => new EmployeeProfileResource($this->projectLeader),

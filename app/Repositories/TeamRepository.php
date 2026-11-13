@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class TeamRepository implements TeamRepositoryInterface
 {
@@ -99,7 +100,8 @@ class TeamRepository implements TeamRepositoryInterface
             $team = Team::create($teamDto->toArray());
 
             if (isset($data['icon'])) {
-                $iconPath = $data['icon']->store('team-icons', 'public');
+                $filename = Str::uuid().'.'.$data['icon']->extension();
+                $iconPath = $data['icon']->storeAs('team-icons', $filename, 'public');
                 $team->update(['icon' => $iconPath]);
             }
 
@@ -140,7 +142,8 @@ class TeamRepository implements TeamRepositoryInterface
                     Storage::disk('public')->delete($team->icon);
                 }
 
-                $iconPath = $data['icon']->store('team-icons', 'public');
+                $filename = Str::uuid().'.'.$data['icon']->extension();
+                $iconPath = $data['icon']->storeAs('team-icons', $filename, 'public');
                 $team->update(['icon' => $iconPath]);
             }
 

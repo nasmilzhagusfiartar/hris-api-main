@@ -222,6 +222,71 @@ class DashboardRepository implements DashboardRepositoryInterface
     }
 
     /**
+     * Get contextual badge counts for Quick Actions in a single lightweight request
+     */
+    public function getQuickActionCounts($user): array
+    {
+        $counts = [
+            'pending_leave_requests' => 0,
+            'pending_payrolls' => 0,
+            'brand_threats_count' => 0,
+            'breached_emails_count' => 0,
+            'my_pending_leaves' => 0,
+            'my_pending_tasks' => 0,
+        ];
+
+        if (! $user) {
+            return $counts;
+        }
+
+        $roles = method_exists($user, 'getRoleNames') ? $user->getRoleNames()->toArray() : [];
+        $isManager = in_array('manager', $roles) || in_array('admin', $roles);
+        $isHr = in_array('hr', $roles);
+        $isFinance = in_array('finance', $roles);
+
+        if ($isManager || $isHr || $user->can('leave-request-list')) {
+            $counts['pending_leave_requests'] = (int) DB::table('leave_requests')
+                ->where('status', 'pending')
+                ->count();
+        }
+
+        if ($isManager || $isFinance || $user->can('payroll-list')) {
+            $counts['pending_payrolls'] = (int) DB::table('payrolls')
+                ->where('status', 'pending')
+                ->count();
+        }
+
+        if ($isManager || $isHr || $user->can('cti-brand-scan')) {
+            $latestScanFound = DB::table('brand_scans')
+                ->where('status', 'done')
+                ->orderByDesc('id')
+                ->value('total_found');
+            $counts['brand_threats_count'] = (int) ($latestScanFound ?? 0);
+        }
+
+        if ($isManager || $isHr || $user->can('cti-breach-check')) {
+            $counts['breached_emails_count'] = (int) DB::table('breach_checks')
+                ->where('is_breached', true)
+                ->count();
+        }
+
+        $employeeId = $user->employeeProfile?->id;
+        if ($employeeId) {
+            $counts['my_pending_leaves'] = (int) DB::table('leave_requests')
+                ->where('employee_id', $employeeId)
+                ->where('status', 'pending')
+                ->count();
+
+            $counts['my_pending_tasks'] = (int) DB::table('project_tasks')
+                ->where('assignee_id', $employeeId)
+                ->whereIn('status', ['todo', 'in_progress'])
+                ->count();
+        }
+
+        return $counts;
+    }
+
+    /**
      * Clear dashboard statistics cache
      */
     public function clearDashboardCache(): void

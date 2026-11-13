@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class AuthRepository implements AuthRepositoryInterface
 {
@@ -84,7 +85,8 @@ class AuthRepository implements AuthRepositoryInterface
                     Storage::disk('public')->delete($user->profile_photo);
                 }
 
-                $profilePhotoPath = $data['profile_photo']->store('profile-pictures', 'public');
+                $filename = Str::uuid().'.'.$data['profile_photo']->extension();
+                $profilePhotoPath = $data['profile_photo']->storeAs('profile-pictures', $filename, 'public');
                 $user->profile_photo = $profilePhotoPath;
             }
 

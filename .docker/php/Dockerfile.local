@@ -10,7 +10,11 @@ RUN apt-get update \
     unzip \
     librabbitmq-dev \
     libpq-dev \
-    supervisor
+    supervisor \
+    procps \
+    python3 \
+    python3-pip \
+    && pip3 install --no-cache-dir --break-system-packages dnstwist dnspython
 
 RUN install-php-extensions \
     gd \
@@ -37,10 +41,16 @@ COPY ./.docker/etc/supervisor.d/supervisord.conf /etc/supervisor/conf.d/supervis
 # Install Laravel dependencies using Composer.
 RUN composer install
 
-# Set permissions for Laravel.
-RUN chown -R www-data:www-data storage bootstrap/cache
+# Set permissions for Laravel and create storage symlink.
+RUN mkdir -p storage/app/public storage/app/private storage/framework/cache storage/framework/sessions storage/framework/views bootstrap/cache \
+    && if [ -d "public/assets/images" ]; then cp -rn public/assets/images/* storage/app/public/ || true; fi \
+    && php artisan storage:link --force || true \
+    && chown -R www-data:www-data storage bootstrap/cache \
+    && chmod +x ./.docker/entrypoint.sh
 
 EXPOSE 80 443
+
+ENTRYPOINT ["/bin/sh", "/var/www/html/.docker/entrypoint.sh"]
 
 # Start Supervisor.
 CMD ["/usr/bin/supervisord", "-n", "-c",  "/etc/supervisor/conf.d/supervisord.conf"]

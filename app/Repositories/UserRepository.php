@@ -7,6 +7,7 @@ use App\Interfaces\UserRepositoryInterface;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Spatie\Permission\Models\Role;
 
 class UserRepository implements UserRepositoryInterface
@@ -23,7 +24,8 @@ class UserRepository implements UserRepositoryInterface
             $user = User::create($userDto->toArray());
 
             if (isset($data['profile_photo'])) {
-                $profilePhotoPath = $data['profile_photo']->store('users', 'public');
+                $filename = Str::uuid().'.'.$data['profile_photo']->extension();
+                $profilePhotoPath = $data['profile_photo']->storeAs('users', $filename, 'public');
                 $user->update(['profile_photo' => $profilePhotoPath]);
             }
 
@@ -58,7 +60,8 @@ class UserRepository implements UserRepositoryInterface
                     Storage::disk('public')->delete($user->profile_photo);
                 }
 
-                $profilePhotoPath = $data['profile_photo']->store('users', 'public');
+                $filename = Str::uuid().'.'.$data['profile_photo']->extension();
+                $profilePhotoPath = $data['profile_photo']->storeAs('users', $filename, 'public');
                 $user->update(['profile_photo' => $profilePhotoPath]);
             }
 

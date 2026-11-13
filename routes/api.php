@@ -1,7 +1,10 @@
 <?php
 
 use App\Http\Controllers\AttendanceController;
+use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\BrandScanController;
+use App\Http\Controllers\BreachCheckController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmployeeProfileController;
 use App\Http\Controllers\LeaveRequestController;
@@ -11,8 +14,11 @@ use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ProjectTaskController;
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\SearchController;
 use App\Http\Controllers\TeamController;
 use Illuminate\Support\Facades\Route;
+
+Route::middleware('auth:sanctum')->get('search', [SearchController::class, 'search']);
 
 Route::prefix('v1')
     ->group(function () {
@@ -93,9 +99,11 @@ Route::prefix('v1')
             Route::get('options/work-locations', [OptionController::class, 'getWorkLocations']);
             Route::get('options/skill-levels', [OptionController::class, 'getSkillLevels']);
 
-            // Dashboard routes
+            // Dashboard & Global Search routes
+            Route::get('search', [SearchController::class, 'search']);
             Route::get('dashboard/statistics', [DashboardController::class, 'getStatistics']);
             Route::get('dashboard/my-statistics', [DashboardController::class, 'getEmployeeStatistics']);
+            Route::get('dashboard/quick-action-counts', [DashboardController::class, 'getQuickActionCounts']);
 
             // RBAC routes (Roles & Permissions)
             Route::get('roles/all/paginated', [RoleController::class, 'getAllPaginated']);
@@ -105,5 +113,17 @@ Route::prefix('v1')
             Route::get('permissions/grouped', [PermissionController::class, 'getGrouped']);
             Route::get('permissions/all/paginated', [PermissionController::class, 'getAllPaginated']);
             Route::apiResource('permissions', PermissionController::class);
+
+            // CTI / OSINT routes
+            Route::post('cti/breach-checks', [BreachCheckController::class, 'check']);
+            Route::post('cti/breach-checks/check-all', [BreachCheckController::class, 'checkAll']);
+            Route::get('cti/breach-checks/all/paginated', [BreachCheckController::class, 'getAllPaginated']);
+
+            Route::post('cti/brand-scans', [BrandScanController::class, 'store']);
+            Route::get('cti/brand-scans/{id}', [BrandScanController::class, 'show']);
+            Route::post('cti/brand-scan-results/{id}/urlscan', [BrandScanController::class, 'submitUrlscan']);
+            Route::get('cti/brand-scan-results/{id}/urlscan', [BrandScanController::class, 'getUrlscan']);
+
+            Route::get('cti/audit-logs', [AuditLogController::class, 'index']);
         });
     });

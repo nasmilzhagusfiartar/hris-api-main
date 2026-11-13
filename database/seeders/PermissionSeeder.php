@@ -79,6 +79,13 @@ class PermissionSeeder extends Seeder
             'process',
             'statistics',
         ],
+
+        'cti' => [
+            'menu',
+            'breach-check',
+            'brand-scan',
+            'urlscan',
+        ],
     ];
 
     /**

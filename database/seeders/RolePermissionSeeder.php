@@ -42,6 +42,7 @@ class RolePermissionSeeder extends Seeder
                 'attendance-',
                 'leave-request-',
                 'profile-',
+                'cti-',
             ], $employeeSpecific));
 
             $employee->syncPermissions(

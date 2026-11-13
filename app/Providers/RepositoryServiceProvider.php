@@ -5,6 +5,8 @@ namespace App\Providers;
 use App\Interfaces\AttendanceRepositoryInterface;
 use App\Interfaces\AuthRepositoryInterface;
 use App\Interfaces\BankInformationRepositoryInterface;
+use App\Interfaces\BrandScanRepositoryInterface;
+use App\Interfaces\BreachCheckRepositoryInterface;
 use App\Interfaces\DashboardRepositoryInterface;
 use App\Interfaces\EmergencyContactRepositoryInterface;
 use App\Interfaces\EmployeeProfileRepositoryInterface;
@@ -20,6 +22,8 @@ use App\Interfaces\UserRepositoryInterface;
 use App\Repositories\AttendanceRepository;
 use App\Repositories\AuthRepository;
 use App\Repositories\BankInformationRepository;
+use App\Repositories\BrandScanRepository;
+use App\Repositories\BreachCheckRepository;
 use App\Repositories\DashboardRepository;
 use App\Repositories\EmergencyContactRepository;
 use App\Repositories\EmployeeProfileRepository;
@@ -56,6 +60,8 @@ class RepositoryServiceProvider extends ServiceProvider
         $this->app->bind(PayrollRepositoryInterface::class, PayrollRepository::class);
         $this->app->bind(RoleRepositoryInterface::class, RoleRepository::class);
         $this->app->bind(PermissionRepositoryInterface::class, PermissionRepository::class);
+        $this->app->bind(BreachCheckRepositoryInterface::class, BreachCheckRepository::class);
+        $this->app->bind(BrandScanRepositoryInterface::class, BrandScanRepository::class);
     }
 
     /**

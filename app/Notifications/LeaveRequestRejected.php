@@ -49,7 +49,7 @@ class LeaveRequestRejected extends Notification implements ShouldQueue
             ->line('Status: **Ditolak**')
             ->action('Lihat Detail', url('/my-attendance'))
             ->line('Jika kamu memiliki pertanyaan, silakan hubungi Tim HR untuk informasi lebih lanjut.')
-            ->salutation('Terima kasih, Tim HR');
+            ->salutation('Terima kasih, Tim HR HIP HRIS');
     }
 
     /**
