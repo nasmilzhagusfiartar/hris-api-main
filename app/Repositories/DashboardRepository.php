@@ -361,6 +361,52 @@ class DashboardRepository implements DashboardRepositoryInterface
                 ->selectRaw('COUNT(*) as led_count')
                 ->first();
 
+            // Build real recent activities from DB (attendances, leave requests, tasks)
+            $recentAttendances = DB::table('attendances')
+                ->where('employee_id', $employeeId)
+                ->orderByDesc('created_at')
+                ->limit(3)
+                ->get(['id', 'status', 'date', 'check_in', 'created_at'])
+                ->map(fn ($a) => [
+                    'id' => 'att-'.$a->id,
+                    'type' => 'check_in',
+                    'title' => 'Attendance recorded ('.ucfirst(str_replace('_', ' ', (string) $a->status)).')',
+                    'created_at' => $a->created_at ?? $a->date,
+                ]);
+
+            $recentLeaves = DB::table('leave_requests')
+                ->where('employee_id', $employeeId)
+                ->orderByDesc('created_at')
+                ->limit(3)
+                ->get(['id', 'leave_type', 'status', 'created_at'])
+                ->map(fn ($l) => [
+                    'id' => 'leave-'.$l->id,
+                    'type' => 'leave',
+                    'title' => 'Leave request ('.ucfirst(str_replace('_', ' ', (string) $l->leave_type)).' - '.ucfirst((string) $l->status).')',
+                    'created_at' => $l->created_at,
+                ]);
+
+            $recentTasks = DB::table('project_tasks')
+                ->where('assignee_id', $employeeId)
+                ->orderByDesc('updated_at')
+                ->limit(3)
+                ->get(['id', 'name', 'status', 'updated_at'])
+                ->map(fn ($t) => [
+                    'id' => 'task-'.$t->id,
+                    'type' => 'task_completed',
+                    'title' => 'Task: '.$t->name.' ('.ucfirst(str_replace('_', ' ', (string) $t->status)).')',
+                    'created_at' => $t->updated_at,
+                ]);
+
+            $recentActivities = collect()
+                ->concat($recentAttendances)
+                ->concat($recentLeaves)
+                ->concat($recentTasks)
+                ->sortByDesc('created_at')
+                ->take(5)
+                ->values()
+                ->all();
+
             return [
                 'attendance' => [
                     'rate' => $attendanceRate,
@@ -380,6 +426,7 @@ class DashboardRepository implements DashboardRepositoryInterface
                     'assigned_active' => (int) ($assignedProjects->assigned_count ?? 0),
                     'led_active' => (int) ($ledProjects->led_count ?? 0),
                 ],
+                'recent_activities' => $recentActivities,
             ];
         });
     }
@@ -473,21 +520,8 @@ class DashboardRepository implements DashboardRepositoryInterface
                 ->toArray();
         }
 
-        // 2. SSL yang akan expired < 30 hari (dari monitored owned domains)
-        // Monitored domains default dates:
-        // herointiputra.com: 2026-10-02, hip.co.id: 2027-02-27, toyscity.id: 2026-12-01
-        $monitoredSslExpiries = [
-            'herointiputra.com' => Carbon::parse('2026-10-02T10:04:21Z'),
-            'hip.co.id' => Carbon::parse('2027-02-27T23:59:59Z'),
-            'toyscity.id' => Carbon::parse('2026-12-01T00:00:00Z'),
-        ];
+        // 2. SSL expiring count (only from real DB records if available; no hardcoded dates)
         $expiringSslCount = 0;
-        $now = now();
-        foreach ($monitoredSslExpiries as $domain => $expDate) {
-            if ($expDate->diffInDays($now, false) >= -30) {
-                $expiringSslCount++;
-            }
-        }
 
         // 3. Jumlah email karyawan terdampak breach
         $breachedEmailsCount = 0;

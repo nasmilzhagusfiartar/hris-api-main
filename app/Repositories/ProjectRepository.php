@@ -225,6 +225,19 @@ class ProjectRepository implements ProjectRepositoryInterface
                 ? round(($taskStats->completed_tasks / $taskStats->total_tasks) * 100)
                 : 0;
 
+            // Monthly project trend for last 6 months from real database records
+            $trendMonths = [];
+            $trendCounts = [];
+            for ($i = 5; $i >= 0; $i--) {
+                $monthDate = now()->subMonths($i);
+                $trendMonths[] = $monthDate->format('M Y');
+                $trendCounts[] = (int) DB::table('projects')
+                    ->whereNull('deleted_at')
+                    ->whereYear('created_at', $monthDate->year)
+                    ->whereMonth('created_at', $monthDate->month)
+                    ->count();
+            }
+
             return [
                 'total' => $totalProjects,
                 'active' => $activeProjects,
@@ -237,6 +250,10 @@ class ProjectRepository implements ProjectRepositoryInterface
                 'in_progress_tasks' => $taskStats->in_progress_tasks ?? 0,
                 'tasks_this_month' => $taskStats->tasks_this_month ?? 0,
                 'completion_rate' => $completionRate,
+                'monthly_trend' => [
+                    'months' => $trendMonths,
+                    'counts' => $trendCounts,
+                ],
             ];
         });
     }
