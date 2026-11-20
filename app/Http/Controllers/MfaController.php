@@ -143,10 +143,20 @@ class MfaController extends Controller implements HasMiddleware
     }
 
     /**
-     * POST /api/v1/users/{user}/mfa/reset (Admin only)
+     * POST /api/v1/users/{user}/mfa/reset (Admin / Super Admin)
+     * Only Super Admin may reset MFA for Admin or Super Admin accounts.
      */
     public function resetUser(Request $request, User $user)
     {
+        if ($user->hasAnyRole(['admin', 'super-admin']) && ! $request->user()->hasRole('super-admin')) {
+            return ResponseHelper::jsonResponse(
+                false,
+                'Only Super Admin can reset MFA for Admin or Super Admin accounts.',
+                null,
+                403
+            );
+        }
+
         try {
             $this->mfaService->resetForUser($user, $request->user(), $request, 'admin_api');
 

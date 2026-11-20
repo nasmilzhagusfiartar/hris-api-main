@@ -61,7 +61,7 @@ class DashboardController extends Controller implements HasMiddleware
         try {
             $user = auth()->user();
 
-            if (! $user || (! $user->hasAnyRole(['admin', 'hr', 'manager', 'finance']))) {
+            if (! $user || (! $user->hasAnyRole(['super-admin', 'admin', 'hr', 'manager', 'finance']))) {
                 return ResponseHelper::jsonResponse(
                     false,
                     "You don't have permission to access global HRIS statistics.",

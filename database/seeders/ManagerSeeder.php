@@ -3,22 +3,29 @@
 namespace Database\Seeders;
 
 use App\Models\User;
+use Database\Seeders\Concerns\RequiresSeederPassword;
 use Illuminate\Database\Seeder;
 
 class ManagerSeeder extends Seeder
 {
+    use RequiresSeederPassword;
+
     /**
      * Run the database seeds.
      */
     public function run(): void
     {
-        $manager = User::create([
-            'name' => 'Manager',
-            'email' => 'manager@gmail.com',
-            'password' => bcrypt('password'),
-            'profile_photo' => 'profile-pictures/male/1.avif',
-        ]);
+        $defaultPassword = $this->resolveSeederPassword();
 
-        $manager->assignRole('manager');
+        $manager = User::firstOrCreate(
+            ['email' => 'manager@gmail.com'],
+            [
+                'name' => 'Manager',
+                'password' => bcrypt($defaultPassword),
+                'profile_photo' => 'profile-pictures/male/1.avif',
+            ]
+        );
+
+        $manager->syncRoles(['manager']);
     }
 }

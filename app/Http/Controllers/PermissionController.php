@@ -11,12 +11,22 @@ use App\Interfaces\PermissionRepositoryInterface;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Controllers\HasMiddleware;
+use Illuminate\Routing\Controllers\Middleware;
+use Spatie\Permission\Middleware\RoleMiddleware;
 
-class PermissionController extends Controller
+class PermissionController extends Controller implements HasMiddleware
 {
     public function __construct(
         private PermissionRepositoryInterface $permissionRepository
     ) {}
+
+    public static function middleware(): array
+    {
+        return [
+            new Middleware(RoleMiddleware::using('super-admin')),
+        ];
+    }
 
     /**
      * Display a listing of all permissions.

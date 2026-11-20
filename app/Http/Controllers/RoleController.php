@@ -12,12 +12,23 @@ use App\Interfaces\RoleRepositoryInterface;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Controllers\HasMiddleware;
+use Illuminate\Routing\Controllers\Middleware;
+use Spatie\Permission\Middleware\RoleMiddleware;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
-class RoleController extends Controller
+class RoleController extends Controller implements HasMiddleware
 {
     public function __construct(
         private RoleRepositoryInterface $roleRepository
     ) {}
+
+    public static function middleware(): array
+    {
+        return [
+            new Middleware(RoleMiddleware::using('super-admin')),
+        ];
+    }
 
     /**
      * Display a listing of roles.
@@ -95,6 +106,8 @@ class RoleController extends Controller
             return ResponseHelper::jsonResponse(true, 'Role Updated Successfully', new RoleResource($role), 200);
         } catch (ModelNotFoundException $e) {
             return ResponseHelper::jsonResponse(false, 'Role Not Found', null, 404);
+        } catch (HttpException $e) {
+            return ResponseHelper::jsonResponse(false, $e->getMessage(), null, $e->getStatusCode());
         } catch (\Throwable $e) {
             return ResponseHelper::jsonResponse(false, 'Failed to update role: '.$e->getMessage(), null, 500);
         }
@@ -111,6 +124,8 @@ class RoleController extends Controller
             return ResponseHelper::jsonResponse(true, 'Role Deleted Successfully', null, 200);
         } catch (ModelNotFoundException $e) {
             return ResponseHelper::jsonResponse(false, 'Role Not Found', null, 404);
+        } catch (HttpException $e) {
+            return ResponseHelper::jsonResponse(false, $e->getMessage(), null, $e->getStatusCode());
         } catch (\Throwable $e) {
             return ResponseHelper::jsonResponse(false, $e->getMessage(), null, 400);
         }
@@ -127,6 +142,8 @@ class RoleController extends Controller
             return ResponseHelper::jsonResponse(true, 'Permissions Assigned Successfully', new RoleResource($role), 200);
         } catch (ModelNotFoundException $e) {
             return ResponseHelper::jsonResponse(false, 'Role Not Found', null, 404);
+        } catch (HttpException $e) {
+            return ResponseHelper::jsonResponse(false, $e->getMessage(), null, $e->getStatusCode());
         } catch (\Throwable $e) {
             return ResponseHelper::jsonResponse(false, 'Failed to assign permissions: '.$e->getMessage(), null, 500);
         }

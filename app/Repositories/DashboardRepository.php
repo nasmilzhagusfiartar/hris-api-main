@@ -81,8 +81,8 @@ class DashboardRepository implements DashboardRepositoryInterface
     public function getStatistics($user = null)
     {
         $user = $user ?: auth()->user();
-        $isManagerOnly = $user && $user->hasRole('manager') && ! $user->hasAnyRole(['admin', 'hr']);
-        $isFinanceOnly = $user && $user->hasRole('finance') && ! $user->hasAnyRole(['admin', 'hr', 'manager']);
+        $isManagerOnly = $user && $user->hasRole('manager') && ! $user->hasAnyRole(['super-admin', 'admin', 'hr']);
+        $isFinanceOnly = $user && $user->hasRole('finance') && ! $user->hasAnyRole(['super-admin', 'admin', 'hr', 'manager']);
 
         $securityEmpIds = $this->getSecurityEmployeeIds();
 
@@ -405,7 +405,7 @@ class DashboardRepository implements DashboardRepositoryInterface
         }
 
         $roles = method_exists($user, 'getRoleNames') ? $user->getRoleNames()->toArray() : [];
-        $isAdmin = in_array('admin', $roles);
+        $isAdmin = in_array('admin', $roles) || in_array('super-admin', $roles);
         $isSecurity = in_array('security', $roles);
         $isManagerOnly = in_array('manager', $roles) && ! $isAdmin && ! in_array('hr', $roles);
         $isHr = in_array('hr', $roles);

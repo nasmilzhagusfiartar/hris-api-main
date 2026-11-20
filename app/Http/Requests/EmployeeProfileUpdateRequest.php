@@ -33,7 +33,7 @@ class EmployeeProfileUpdateRequest extends FormRequest
             'password' => ['sometimes', 'required', 'string', 'min:8'],
             'profile_photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'roles' => ['sometimes', 'required', 'array'],
-            'roles.*' => ['required', 'string', 'in:hr,finance,employee'],
+            'roles.*' => ['required', 'string', Rule::exists('roles', 'name')->where('guard_name', 'sanctum')],
 
             // Employee Profile fields
             'code' => ['sometimes', 'required', 'string', 'max:50', Rule::unique('employee_profiles', 'code')->ignore($employeeId)],

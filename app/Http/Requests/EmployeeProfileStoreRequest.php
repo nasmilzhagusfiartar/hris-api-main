@@ -10,6 +10,7 @@ use App\Enums\JobStatus;
 use App\Enums\SkillLevel;
 use App\Enums\WorkLocation;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class EmployeeProfileStoreRequest extends FormRequest
 {
@@ -27,7 +28,7 @@ class EmployeeProfileStoreRequest extends FormRequest
             'password' => ['required', 'string', 'min:8'],
             'profile_photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'roles' => ['required', 'array'],
-            'roles.*' => ['required', 'string', 'in:hr,finance,employee'],
+            'roles.*' => ['required', 'string', Rule::exists('roles', 'name')->where('guard_name', 'sanctum')],
 
             // Employee Profile fields
             'identity_number' => ['required', 'string', 'max:20', 'unique:employee_profiles,identity_number'],

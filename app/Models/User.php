@@ -9,11 +9,24 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasApiTokens, HasFactory, HasRoles, Notifiable, SoftDeletes;
+
+    protected static function booted(): void
+    {
+        static::deleting(function (User $user): void {
+            if ($user->hasRole('super-admin')) {
+                $superAdminCount = static::role('super-admin', 'sanctum')->count();
+                if ($superAdminCount <= 1) {
+                    throw new HttpException(403, 'Cannot delete the last Super Admin in the system.');
+                }
+            }
+        });
+    }
 
     /**
      * The attributes that are mass assignable.

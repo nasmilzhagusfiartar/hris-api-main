@@ -20,6 +20,7 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class EmployeeProfileRepository implements EmployeeProfileRepositoryInterface
 {
@@ -48,11 +49,11 @@ class EmployeeProfileRepository implements EmployeeProfileRepositoryInterface
             $searchResults = $scoutQuery->keys();
 
             // Build query with IDs and eager loading
-            $query = EmployeeProfile::with(['user', 'jobInformation', 'bankInformation', 'emergencyContacts'])
+            $query = EmployeeProfile::with(['user.roles', 'jobInformation', 'bankInformation', 'emergencyContacts'])
                 ->whereIn('id', $searchResults);
         } else {
             // For non-search queries, use regular Eloquent
-            $query = EmployeeProfile::with(['user', 'jobInformation', 'bankInformation', 'emergencyContacts']);
+            $query = EmployeeProfile::with(['user.roles', 'jobInformation', 'bankInformation', 'emergencyContacts']);
         }
 
         // Apply filters (extracted to avoid duplication)
@@ -209,6 +210,10 @@ class EmployeeProfileRepository implements EmployeeProfileRepositoryInterface
     {
         return DB::transaction(function () use ($id) {
             $employee = $this->getById($id);
+
+            if ($employee->user && $employee->user->hasRole('super-admin')) {
+                throw new HttpException(403, 'Super Admin user cannot be deleted.');
+            }
 
             $employee->delete();
 

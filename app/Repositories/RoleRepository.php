@@ -8,10 +8,11 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Role;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class RoleRepository implements RoleRepositoryInterface
 {
-    private const SYSTEM_ROLES = ['manager', 'hr', 'employee', 'finance'];
+    private const SYSTEM_ROLES = ['super-admin', 'admin', 'security', 'manager', 'hr', 'employee', 'finance'];
 
     public function getAll(
         ?string $search,
@@ -75,6 +76,10 @@ class RoleRepository implements RoleRepositoryInterface
         return DB::transaction(function () use ($id, $data) {
             $role = $this->getById($id);
 
+            if ($role->name === 'super-admin') {
+                throw new HttpException(403, "Role 'super-admin' cannot be renamed or modified.");
+            }
+
             $role->update([
                 'name' => $data['name'],
             ]);
@@ -88,6 +93,10 @@ class RoleRepository implements RoleRepositoryInterface
         return DB::transaction(function () use ($id) {
             $role = $this->getById($id);
 
+            if ($role->name === 'super-admin') {
+                throw new HttpException(403, "Role 'super-admin' cannot be deleted.");
+            }
+
             if (in_array($role->name, self::SYSTEM_ROLES)) {
                 throw new \Exception("System role '{$role->name}' cannot be deleted.");
             }
@@ -100,6 +109,10 @@ class RoleRepository implements RoleRepositoryInterface
     {
         return DB::transaction(function () use ($id, $permissions) {
             $role = $this->getById($id);
+
+            if ($role->name === 'super-admin') {
+                throw new HttpException(403, "Permissions for role 'super-admin' cannot be modified.");
+            }
 
             $role->syncPermissions($permissions);
 

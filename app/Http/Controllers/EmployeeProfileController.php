@@ -11,6 +11,7 @@ use App\Http\Resources\PaginateResource;
 use App\Http\Resources\ProjectResource;
 use App\Http\Resources\TeamMemberResource;
 use App\Http\Resources\TeamResource;
+use App\Http\Resources\UserResource;
 use App\Interfaces\EmployeeProfileRepositoryInterface;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
@@ -18,6 +19,7 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
 use Spatie\Permission\Middleware\PermissionMiddleware;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class EmployeeProfileController extends Controller implements HasMiddleware
 {
@@ -101,6 +103,8 @@ class EmployeeProfileController extends Controller implements HasMiddleware
             $employee = $this->employeeProfileRepository->create($request);
 
             return ResponseHelper::jsonResponse(true, 'Employee Created Successfully', new EmployeeProfileResource($employee), 201);
+        } catch (HttpException $e) {
+            return ResponseHelper::jsonResponse(false, $e->getMessage(), null, $e->getStatusCode());
         } catch (\Throwable $e) {
             return ResponseHelper::jsonResponse(false, 'Internal Server Error: '.$e->getMessage(), null, 500);
         }
@@ -135,6 +139,8 @@ class EmployeeProfileController extends Controller implements HasMiddleware
             return ResponseHelper::jsonResponse(true, 'Employee Updated Successfully', new EmployeeProfileResource($employee), 200);
         } catch (ModelNotFoundException $e) {
             return ResponseHelper::jsonResponse(false, 'Employee Not Found', null, 404);
+        } catch (HttpException $e) {
+            return ResponseHelper::jsonResponse(false, $e->getMessage(), null, $e->getStatusCode());
         } catch (\Throwable $e) {
             return ResponseHelper::jsonResponse(false, 'Internal Server Error: '.$e->getMessage(), null, 500);
         }
@@ -151,6 +157,8 @@ class EmployeeProfileController extends Controller implements HasMiddleware
             return ResponseHelper::jsonResponse(true, 'Employee Deleted Successfully', null, 200);
         } catch (ModelNotFoundException $e) {
             return ResponseHelper::jsonResponse(false, 'Employee Not Found', null, 404);
+        } catch (HttpException $e) {
+            return ResponseHelper::jsonResponse(false, $e->getMessage(), null, $e->getStatusCode());
         } catch (\Throwable $e) {
             return ResponseHelper::jsonResponse(false, 'Internal Server Error: '.$e->getMessage(), null, 500);
         }
@@ -196,6 +204,33 @@ class EmployeeProfileController extends Controller implements HasMiddleware
 
             return ResponseHelper::jsonResponse(true, 'Employee Profile Retrieved Successfully', new EmployeeProfileResource($employee), 200);
         } catch (ModelNotFoundException $e) {
+            // Gracefully handle system accounts (e.g. super-admin, manager) that do not have an EmployeeProfile row
+            $user = auth()->user();
+            if ($user) {
+                $user->loadMissing('roles');
+
+                return ResponseHelper::jsonResponse(true, 'User Profile Retrieved Successfully', [
+                    'id' => null,
+                    'code' => '-',
+                    'identity_number' => '-',
+                    'phone' => '-',
+                    'date_of_birth' => null,
+                    'gender' => '-',
+                    'hobby' => '-',
+                    'place_of_birth' => '-',
+                    'address' => '-',
+                    'city' => '-',
+                    'postal_code' => '-',
+                    'preferred_language' => '-',
+                    'additional_notes' => null,
+                    'user' => new UserResource($user),
+                    'team' => null,
+                    'job_information' => null,
+                    'bank_information' => null,
+                    'emergency_contacts' => [],
+                ], 200);
+            }
+
             return ResponseHelper::jsonResponse(false, 'Employee Profile Not Found', null, 404);
         } catch (\Throwable $e) {
             return ResponseHelper::jsonResponse(false, 'Internal Server Error: '.$e->getMessage(), null, 500);

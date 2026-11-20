@@ -3,16 +3,19 @@
 namespace Database\Seeders;
 
 use App\Models\User;
+use Database\Seeders\Concerns\RequiresSeederPassword;
 use Illuminate\Database\Seeder;
 
 class SecuritySeeder extends Seeder
 {
+    use RequiresSeederPassword;
+
     /**
      * Run the database seeds.
      */
     public function run(): void
     {
-        $defaultPassword = env('SEEDER_DEFAULT_PASSWORD', 'password');
+        $defaultPassword = $this->resolveSeederPassword();
 
         $securityUser = User::firstOrCreate(
             ['email' => 'security@gmail.com'],

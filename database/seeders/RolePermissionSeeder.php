@@ -16,6 +16,7 @@ class RolePermissionSeeder extends Seeder
     public function run(): void
     {
         DB::transaction(function () {
+            $superAdmin = Role::firstOrCreate(['name' => 'super-admin', 'guard_name' => 'sanctum']);
             $admin = Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'sanctum']);
             $security = Role::firstOrCreate(['name' => 'security', 'guard_name' => 'sanctum']);
             $manager = Role::firstOrCreate(['name' => 'manager', 'guard_name' => 'sanctum']);
@@ -73,7 +74,9 @@ class RolePermissionSeeder extends Seeder
                 'quick-action.security.audit-user',
                 'quick-action.security.failed-logins',
             ];
-            $admin->syncPermissions($this->permissionsAllExcept($adminExcludedQuickActions));
+            $adminPermissions = $this->permissionsAllExcept($adminExcludedQuickActions);
+            $superAdmin->syncPermissions($adminPermissions);
+            $admin->syncPermissions($adminPermissions);
 
             // 2. Security: Full CTI + Audit User + Personal Profile/Leave self-service (NO Attendance, NO HRIS management)
             $security->syncPermissions(
