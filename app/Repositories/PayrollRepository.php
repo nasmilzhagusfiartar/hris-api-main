@@ -120,7 +120,8 @@ class PayrollRepository implements PayrollRepositoryInterface
                     $query->where('name', 'security');
                 })
                 ->whereHas('jobInformation', function ($query) {
-                    $query->where('status', 'active');
+                    $query->where('status', 'active')
+                        ->where('employment_type', '!=', 'vendor');
                 })
                 ->get();
 

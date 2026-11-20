@@ -97,6 +97,13 @@ class User extends Authenticatable
         return $this->hasOne(EmployeeProfile::class);
     }
 
+    public function isVendorEmployee(): bool
+    {
+        $type = $this->employeeProfile?->jobInformation?->employment_type;
+
+        return is_string($type) && strtolower($type) === 'vendor';
+    }
+
     public function leadTeams()
     {
         return $this->hasMany(Team::class, 'team_lead_id');

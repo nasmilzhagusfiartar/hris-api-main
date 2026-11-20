@@ -3,7 +3,9 @@
 namespace App\Providers;
 
 use App\Interfaces\OptionRepositoryInterface;
+use App\Interfaces\StoreRepositoryInterface;
 use App\Repositories\OptionRepository;
+use App\Repositories\StoreRepository;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -16,6 +18,7 @@ class AppServiceProvider extends ServiceProvider
     {
         // Register repository bindings
         $this->app->bind(OptionRepositoryInterface::class, OptionRepository::class);
+        $this->app->bind(StoreRepositoryInterface::class, StoreRepository::class);
 
         if ($this->app->environment('local') && class_exists(\Laravel\Telescope\TelescopeServiceProvider::class)) {
 

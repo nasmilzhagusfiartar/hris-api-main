@@ -11,7 +11,10 @@ interface EmployeeProfileRepositoryInterface
         ?string $workLocation,
         ?string $projectId,
         ?int $limit,
-        bool $execute
+        bool $execute,
+        ?string $department = null,
+        ?string $storeId = null,
+        ?string $vendorName = null
     );
 
     public function getAllPaginated(
@@ -20,7 +23,10 @@ interface EmployeeProfileRepositoryInterface
         ?string $type,
         ?string $workLocation,
         ?string $projectId,
-        int $rowPerPage
+        int $rowPerPage,
+        ?string $department = null,
+        ?string $storeId = null,
+        ?string $vendorName = null
     );
 
     public function getById(

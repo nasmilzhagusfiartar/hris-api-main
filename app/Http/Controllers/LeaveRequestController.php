@@ -69,8 +69,12 @@ class LeaveRequestController extends Controller implements HasMiddleware
         }
     }
 
-    public function getMyLeaveRequests()
+    public function getMyLeaveRequests(Request $request)
     {
+        if ($request->user()?->isVendorEmployee()) {
+            return ResponseHelper::jsonResponse(false, 'Vendor employees are not eligible for Leave Requests.', null, 403);
+        }
+
         try {
             $leaveRequests = $this->leaveRequestRepository->getMyLeaveRequests();
 
@@ -85,6 +89,10 @@ class LeaveRequestController extends Controller implements HasMiddleware
      */
     public function store(LeaveRequestStoreRequest $request)
     {
+        if ($request->user()?->isVendorEmployee()) {
+            return ResponseHelper::jsonResponse(false, 'Vendor employees are not eligible for Leave Requests.', null, 403);
+        }
+
         $data = $request->validated();
 
         try {

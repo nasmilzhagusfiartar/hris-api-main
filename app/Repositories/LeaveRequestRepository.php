@@ -22,6 +22,9 @@ class LeaveRequestRepository implements LeaveRequestRepositoryInterface
         bool $execute
     ) {
         $query = LeaveRequest::with(['employee.user', 'approver.user'])
+            ->whereDoesntHave('employee.jobInformation', function ($jq) {
+                $jq->where('employment_type', 'vendor');
+            })
             ->where(function ($query) use ($search) {
                 if ($search) {
                     $query->search($search);

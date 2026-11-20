@@ -38,6 +38,9 @@ class UserResource extends JsonResource
             'token' => $this->when(isset($this->token), $this->token),
             'mfa_enabled' => $this->hasMfaEnabled(),
             'mfa_setup_required' => config('mfa.enabled', true) && $this->requiresMfa() && ! $this->hasMfaEnabled(),
+            'is_vendor' => $this->isVendorEmployee(),
+            'vendor_name' => $this->employeeProfile?->jobInformation?->vendor_name,
+            'store_name' => $this->employeeProfile?->jobInformation?->store?->name,
             'created_at' => $this->created_at,
         ];
     }

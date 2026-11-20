@@ -19,6 +19,7 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\SettingController;
+use App\Http\Controllers\StoreController;
 use App\Http\Controllers\TeamController;
 use Illuminate\Support\Facades\Route;
 
@@ -63,6 +64,10 @@ Route::prefix('v1')
             Route::post('teams/{team}/add-member', [TeamController::class, 'addMember']);
             Route::post('teams/{team}/remove-member', [TeamController::class, 'removeMember']);
             Route::apiResource('teams', TeamController::class);
+
+            // Stores CRUD routes (super-admin, admin, hr)
+            Route::get('stores/all/paginated', [StoreController::class, 'getAllPaginated']);
+            Route::apiResource('stores', StoreController::class);
 
             Route::get('my-profile', [EmployeeProfileController::class, 'getMyProfile']);
             Route::get('my-team', [EmployeeProfileController::class, 'getMyTeam']);

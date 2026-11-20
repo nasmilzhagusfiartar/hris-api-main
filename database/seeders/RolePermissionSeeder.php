@@ -110,9 +110,10 @@ class RolePermissionSeeder extends Seeder
                 ])->get()
             );
 
-            // 3. Manager: All HRIS management permissions EXCEPT full CTI & Audit User; only check-own for email breach
+            // 3. Manager: All HRIS management permissions EXCEPT full CTI, Audit User, & Stores CRUD; only check-own for email breach
             $allQuickActions = Permission::where('name', 'like', 'quick-action.%')->pluck('name')->all();
-            $managerExcluded = array_merge($employeeSpecific, $restrictedCtiPermissions, $allQuickActions);
+            $storePermissions = ['store-menu', 'store-list', 'store-create', 'store-edit', 'store-delete'];
+            $managerExcluded = array_merge($employeeSpecific, $restrictedCtiPermissions, $allQuickActions, $storePermissions);
             $managerPermissions = $this->permissionsAllExcept($managerExcluded)
                 ->pluck('name')
                 ->push(
@@ -130,11 +131,12 @@ class RolePermissionSeeder extends Seeder
                 ->all();
             $manager->syncPermissions(Permission::whereIn('name', $managerPermissions)->get());
 
-            // 4. HR: HRIS modules + check-own for email breach + 6 HR Quick Actions
+            // 4. HR: HRIS modules + Stores CRUD + check-own for email breach + 6 HR Quick Actions
             $hrPermissions = $this->permissionsByPrefixes([
                 'dashboard-',
                 'team-',
                 'employee-',
+                'store-',
                 'project-',
                 'task-',
                 'attendance-',

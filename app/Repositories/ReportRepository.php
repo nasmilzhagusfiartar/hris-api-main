@@ -144,9 +144,24 @@ class ReportRepository implements ReportRepositoryInterface
         if (! empty($filters['department'])) {
             $dept = strtolower(trim((string) $filters['department']));
             $query->where(function (Builder $q) use ($dept) {
-                $q->whereHas('jobInformation.team', fn (Builder $tq) => $tq->whereRaw('LOWER(department) = ?', [$dept]))
+                $q->whereHas('jobInformation', fn (Builder $jq) => $jq->whereRaw('LOWER(department) = ?', [$dept]))
+                    ->orWhereHas('jobInformation.team', fn (Builder $tq) => $tq->whereRaw('LOWER(department) = ?', [$dept]))
                     ->orWhereHas('teams', fn (Builder $tq) => $tq->whereRaw('LOWER(teams.department) = ?', [$dept]));
             });
+        }
+
+        if (! empty($filters['store_id'])) {
+            $query->whereHas('jobInformation', fn (Builder $jq) => $jq->where('store_id', (int) $filters['store_id']));
+        }
+
+        if (! empty($filters['employment_type'])) {
+            $type = strtolower(trim((string) $filters['employment_type']));
+            $query->whereHas('jobInformation', fn (Builder $jq) => $jq->whereRaw('LOWER(employment_type) = ?', [$type]));
+        }
+
+        if (! empty($filters['vendor_name'])) {
+            $vendor = trim((string) $filters['vendor_name']);
+            $query->whereHas('jobInformation', fn (Builder $jq) => $jq->where('vendor_name', 'like', '%'.$vendor.'%'));
         }
 
         return $query;
@@ -403,11 +418,14 @@ class ReportRepository implements ReportRepositoryInterface
             $deptAmounts[$deptName] = ($deptAmounts[$deptName] ?? 0) + (float) $detail->final_salary;
         }
 
-        // Fallback to monthly_salary from jobInformation if no payroll records exist in range
+        // Fallback to monthly_salary from jobInformation if no payroll records exist in range (excluding vendor employees)
         if (empty($deptAmounts)) {
             foreach ($employees as $emp) {
+                if (strtolower((string) ($emp->jobInformation?->employment_type ?? '')) === 'vendor') {
+                    continue;
+                }
                 $team = $emp->jobInformation?->team ?: $emp->teams->first();
-                $deptRaw = $team?->department;
+                $deptRaw = $emp->jobInformation?->department ?: $team?->department;
                 $deptName = is_object($deptRaw) && isset($deptRaw->value)
                     ? ucfirst((string) $deptRaw->value)
                     : ($deptRaw ? ucfirst((string) $deptRaw) : 'Unassigned');

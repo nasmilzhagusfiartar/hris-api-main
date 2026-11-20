@@ -52,11 +52,14 @@ class EmployeeProfileController extends Controller implements HasMiddleware
             $employees = $this->employeeProfileRepository->getAll(
                 $request->search,
                 $request->status,
-                $request->type,
+                $request->type ?? $request->employment_type,
                 $request->work_location,
                 $request->project_id,
                 $request->limit,
-                true
+                true,
+                $request->department,
+                $request->store_id,
+                $request->vendor_name
             );
 
             return ResponseHelper::jsonResponse(true, 'Employee Retrieved Successfully', EmployeeProfileResource::collection($employees), 200);
@@ -71,8 +74,12 @@ class EmployeeProfileController extends Controller implements HasMiddleware
             'search' => 'nullable|string',
             'status' => 'nullable|string',
             'type' => 'nullable|string',
+            'employment_type' => 'nullable|string',
             'work_location' => 'nullable|string|in:'.implode(',', array_column(WorkLocation::cases(), 'value')),
             'project_id' => 'nullable|integer',
+            'department' => 'nullable|string',
+            'store_id' => 'nullable|integer',
+            'vendor_name' => 'nullable|string',
             'row_per_page' => 'required|integer|min:1',
         ]);
 
@@ -80,10 +87,13 @@ class EmployeeProfileController extends Controller implements HasMiddleware
             $employees = $this->employeeProfileRepository->getAllPaginated(
                 $request['search'] ?? null,
                 $request['status'] ?? null,
-                $request['type'] ?? null,
+                $request['type'] ?? $request['employment_type'] ?? null,
                 $request['work_location'] ?? null,
                 $request['project_id'] ?? null,
-                $request['row_per_page']
+                $request['row_per_page'],
+                $request['department'] ?? null,
+                isset($request['store_id']) ? (string) $request['store_id'] : null,
+                $request['vendor_name'] ?? null
             );
 
             return ResponseHelper::jsonResponse(true, 'Employee Retrieved Successfully', PaginateResource::make($employees, EmployeeProfileResource::class), 200);

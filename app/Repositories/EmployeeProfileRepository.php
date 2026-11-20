@@ -38,7 +38,10 @@ class EmployeeProfileRepository implements EmployeeProfileRepositoryInterface
         ?string $workLocation,
         ?string $projectId,
         ?int $limit,
-        bool $execute
+        bool $execute,
+        ?string $department = null,
+        ?string $storeId = null,
+        ?string $vendorName = null
     ): Builder|Collection {
         // If search is provided, use Scout for full-text search
         if ($search) {
@@ -49,15 +52,15 @@ class EmployeeProfileRepository implements EmployeeProfileRepositoryInterface
             $searchResults = $scoutQuery->keys();
 
             // Build query with IDs and eager loading
-            $query = EmployeeProfile::with(['user.roles', 'jobInformation', 'bankInformation', 'emergencyContacts'])
+            $query = EmployeeProfile::with(['user.roles', 'jobInformation.store', 'bankInformation', 'emergencyContacts'])
                 ->whereIn('id', $searchResults);
         } else {
             // For non-search queries, use regular Eloquent
-            $query = EmployeeProfile::with(['user.roles', 'jobInformation', 'bankInformation', 'emergencyContacts']);
+            $query = EmployeeProfile::with(['user.roles', 'jobInformation.store', 'bankInformation', 'emergencyContacts']);
         }
 
         // Apply filters (extracted to avoid duplication)
-        $this->applyFilters($query, $status, $type, $workLocation, $projectId);
+        $this->applyFilters($query, $status, $type, $workLocation, $projectId, $department, $storeId, $vendorName);
 
         $query->orderByDesc('created_at');
 
@@ -75,8 +78,16 @@ class EmployeeProfileRepository implements EmployeeProfileRepositoryInterface
     /**
      * Apply common filters to employee query
      */
-    private function applyFilters($query, ?string $status, ?string $type, ?string $workLocation, ?string $projectId): void
-    {
+    private function applyFilters(
+        $query,
+        ?string $status,
+        ?string $type,
+        ?string $workLocation,
+        ?string $projectId,
+        ?string $department = null,
+        ?string $storeId = null,
+        ?string $vendorName = null
+    ): void {
         if ($status) {
             $query->whereHas('jobInformation', function ($q) use ($status) {
                 $q->where('status', $status);
@@ -92,6 +103,25 @@ class EmployeeProfileRepository implements EmployeeProfileRepositoryInterface
         if ($workLocation) {
             $query->whereHas('jobInformation', function ($q) use ($workLocation) {
                 $q->where('work_location', $workLocation);
+            });
+        }
+
+        if ($department) {
+            $query->where(function ($q) use ($department) {
+                $q->whereHas('jobInformation', fn ($jq) => $jq->where('department', $department))
+                    ->orWhereHas('jobInformation.team', fn ($tq) => $tq->where('department', $department));
+            });
+        }
+
+        if ($storeId) {
+            $query->whereHas('jobInformation', function ($q) use ($storeId) {
+                $q->where('store_id', $storeId);
+            });
+        }
+
+        if ($vendorName) {
+            $query->whereHas('jobInformation', function ($q) use ($vendorName) {
+                $q->where('vendor_name', 'like', '%'.$vendorName.'%');
             });
         }
 
@@ -117,7 +147,10 @@ class EmployeeProfileRepository implements EmployeeProfileRepositoryInterface
         ?string $type,
         ?string $workLocation,
         ?string $projectId,
-        int $rowPerPage
+        int $rowPerPage,
+        ?string $department = null,
+        ?string $storeId = null,
+        ?string $vendorName = null
     ): LengthAwarePaginator {
         $query = $this->getAll(
             $search,
@@ -126,7 +159,10 @@ class EmployeeProfileRepository implements EmployeeProfileRepositoryInterface
             $workLocation,
             $projectId,
             null,
-            false
+            false,
+            $department,
+            $storeId,
+            $vendorName
         );
 
         // Use regular pagination for all cases to ensure consistency
@@ -139,6 +175,7 @@ class EmployeeProfileRepository implements EmployeeProfileRepositoryInterface
         return EmployeeProfile::with([
             'user',
             'user.roles',
+            'jobInformation.store',
             'jobInformation.team.leader',
             'jobInformation.team' => function ($query) {
                 $query->withCount('members');
@@ -261,9 +298,12 @@ class EmployeeProfileRepository implements EmployeeProfileRepositoryInterface
             'employee_id' => $employeeId,
             'job_title' => $data['job_title'] ?? null,
             'team_id' => $data['team_id'] ?? null,
+            'department' => $data['department'] ?? null,
+            'store_id' => $data['store_id'] ?? null,
             'years_experience' => $data['years_experience'] ?? null,
             'status' => $data['status'] ?? null,
             'employment_type' => $data['employment_type'] ?? null,
+            'vendor_name' => ($data['employment_type'] ?? null) === 'vendor' ? ($data['vendor_name'] ?? null) : null,
             'work_location' => $data['work_location'] ?? null,
             'start_date' => $data['start_date'] ?? null,
             'monthly_salary' => $data['monthly_salary'] ?? null,
@@ -331,9 +371,12 @@ class EmployeeProfileRepository implements EmployeeProfileRepositoryInterface
         $fields = [
             'job_title',
             'team_id',
+            'department',
+            'store_id',
             'years_experience',
             'status',
             'employment_type',
+            'vendor_name',
             'work_location',
             'start_date',
             'monthly_salary',

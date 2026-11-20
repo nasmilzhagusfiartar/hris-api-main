@@ -14,9 +14,12 @@ class JobInformation extends Model
         'employee_id',
         'job_title',
         'team_id',
+        'department',
+        'store_id',
         'years_experience',
         'status',
         'employment_type',
+        'vendor_name',
         'work_location',
         'start_date',
         'monthly_salary',
@@ -39,5 +42,10 @@ class JobInformation extends Model
     public function team()
     {
         return $this->belongsTo(Team::class);
+    }
+
+    public function store()
+    {
+        return $this->belongsTo(Store::class, 'store_id');
     }
 }

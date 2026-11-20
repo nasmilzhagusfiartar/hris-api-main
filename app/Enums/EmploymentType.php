@@ -8,6 +8,7 @@ enum EmploymentType: string
     case PART_TIME = 'part_time';
     case CONTRACT = 'contract';
     case INTERN = 'intern';
+    case VENDOR = 'vendor';
 
     public function label(): string
     {
@@ -16,6 +17,7 @@ enum EmploymentType: string
             self::PART_TIME => 'Part-time',
             self::CONTRACT => 'Contract',
             self::INTERN => 'Intern',
+            self::VENDOR => 'Vendor',
         };
     }
 

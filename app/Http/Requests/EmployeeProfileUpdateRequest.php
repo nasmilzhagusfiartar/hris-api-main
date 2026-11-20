@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Enums\AccountType;
 use App\Enums\BankName;
+use App\Enums\Department;
 use App\Enums\EmploymentType;
 use App\Enums\Gender;
 use App\Enums\JobStatus;
@@ -52,9 +53,12 @@ class EmployeeProfileUpdateRequest extends FormRequest
             // Job Information fields
             'job_title' => ['sometimes', 'required', 'string', 'max:255'],
             'team_id' => ['nullable', 'exists:teams,id'],
+            'department' => ['nullable', 'string', 'in:'.implode(',', array_column(Department::cases(), 'value'))],
+            'store_id' => ['nullable', 'exists:stores,id'],
             'years_experience' => ['sometimes', 'required', 'integer', 'min:0'],
             'status' => ['sometimes', 'required', 'string', 'in:'.implode(',', array_column(JobStatus::cases(), 'value'))],
             'employment_type' => ['sometimes', 'required', 'string', 'in:'.implode(',', array_column(EmploymentType::cases(), 'value'))],
+            'vendor_name' => ['required_if:employment_type,vendor', 'nullable', 'string', 'max:255'],
             'work_location' => ['sometimes', 'required', 'string', 'in:'.implode(',', array_column(WorkLocation::cases(), 'value'))],
             'start_date' => ['sometimes', 'required', 'date'],
             'monthly_salary' => ['sometimes', 'required', 'numeric', 'min:0'],

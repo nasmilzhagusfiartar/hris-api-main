@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Enums\AccountType;
 use App\Enums\BankName;
+use App\Enums\Department;
 use App\Enums\EmploymentType;
 use App\Enums\Gender;
 use App\Enums\JobStatus;
@@ -46,9 +47,12 @@ class EmployeeProfileStoreRequest extends FormRequest
             // Job Information fields
             'job_title' => ['required', 'string', 'max:255'],
             'team_id' => ['nullable', 'exists:teams,id'],
+            'department' => ['nullable', 'string', 'in:'.implode(',', array_column(Department::cases(), 'value'))],
+            'store_id' => ['nullable', 'exists:stores,id'],
             'years_experience' => ['required', 'integer', 'min:0'],
             'status' => ['required', 'string', 'in:'.implode(',', array_column(JobStatus::cases(), 'value'))],
             'employment_type' => ['required', 'string', 'in:'.implode(',', array_column(EmploymentType::cases(), 'value'))],
+            'vendor_name' => ['required_if:employment_type,vendor', 'nullable', 'string', 'max:255'],
             'work_location' => ['required', 'string', 'in:'.implode(',', array_column(WorkLocation::cases(), 'value'))],
             'start_date' => ['required', 'date'],
             'monthly_salary' => ['required', 'numeric', 'min:0'],

@@ -43,6 +43,10 @@ class PayrollController extends Controller implements HasMiddleware
      */
     public function index(Request $request)
     {
+        if ($request->user()?->isVendorEmployee()) {
+            return ResponseHelper::jsonResponse(false, 'Vendor employees are excluded from Payroll and Payslips.', null, 403);
+        }
+
         try {
             $payrolls = $this->payrollRepository->getAll(
                 $request->search,

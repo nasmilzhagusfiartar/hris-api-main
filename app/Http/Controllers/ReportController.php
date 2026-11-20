@@ -47,6 +47,9 @@ class ReportController extends Controller implements HasMiddleware
             'end_date' => 'nullable|date',
             'team_id' => 'nullable|integer',
             'department' => 'nullable|string|max:100',
+            'store_id' => 'nullable|integer',
+            'employment_type' => 'nullable|string|max:50',
+            'vendor_name' => 'nullable|string|max:255',
             'employee_id' => 'nullable|integer',
         ]);
 
@@ -67,6 +70,9 @@ class ReportController extends Controller implements HasMiddleware
             'end_date' => 'nullable|date',
             'team_id' => 'nullable|integer',
             'department' => 'nullable|string|max:100',
+            'store_id' => 'nullable|integer',
+            'employment_type' => 'nullable|string|max:50',
+            'vendor_name' => 'nullable|string|max:255',
             'employee_id' => 'nullable|integer',
         ]);
 
@@ -84,6 +90,7 @@ class ReportController extends Controller implements HasMiddleware
             'end_date' => 'nullable|date',
             'team_id' => 'nullable|integer',
             'department' => 'nullable|string|max:100',
+            'store_id' => 'nullable|integer',
         ]);
 
         try {
@@ -101,6 +108,9 @@ class ReportController extends Controller implements HasMiddleware
             'period' => 'nullable|string|in:last_3_months,last_6_months,this_year',
             'team_id' => 'nullable|integer',
             'department' => 'nullable|string|max:100',
+            'store_id' => 'nullable|integer',
+            'employment_type' => 'nullable|string|max:50',
+            'vendor_name' => 'nullable|string|max:255',
         ]);
 
         try {

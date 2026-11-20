@@ -35,6 +35,14 @@ class PermissionSeeder extends Seeder
             'delete',
         ],
 
+        'store' => [
+            'menu',
+            'list',
+            'create',
+            'edit',
+            'delete',
+        ],
+
         'project' => [
             'menu',
             'statistic',
