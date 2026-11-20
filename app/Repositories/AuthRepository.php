@@ -21,7 +21,10 @@ class AuthRepository implements AuthRepositoryInterface
                 throw new \Exception('Unauthorized', 401);
             }
 
-            $user = Auth::user()->load('roles');
+            $user = Auth::user()->load(['roles', 'permissions']);
+            if ($user->hasRole('employee')) {
+                $user->load('employeeProfile');
+            }
             $user->token = $user->createToken('auth_token')->plainTextToken;
 
             DB::commit();

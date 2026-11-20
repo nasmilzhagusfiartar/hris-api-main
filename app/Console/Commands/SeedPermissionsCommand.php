@@ -32,11 +32,17 @@ class SeedPermissionsCommand extends Command
             $this->call('migrate:fresh');
         }
 
+        $this->info('Seeding roles...');
+        $this->call('db:seed', ['--class' => 'RoleSeeder']);
+
         $this->info('Seeding permissions...');
         $this->call('db:seed', ['--class' => 'PermissionSeeder']);
 
         $this->info('Seeding role permissions...');
         $this->call('db:seed', ['--class' => 'RolePermissionSeeder']);
+
+        $this->info('Seeding Security role user...');
+        $this->call('db:seed', ['--class' => 'SecuritySeeder']);
 
         $this->info('✅ Permission seeding completed successfully!');
     }

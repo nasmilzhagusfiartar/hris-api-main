@@ -8,13 +8,16 @@ use App\Http\Controllers\BreachCheckController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmployeeProfileController;
 use App\Http\Controllers\LeaveRequestController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OptionController;
 use App\Http\Controllers\PayrollController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ProjectTaskController;
+use App\Http\Controllers\ReportController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SearchController;
+use App\Http\Controllers\SettingController;
 use App\Http\Controllers\TeamController;
 use Illuminate\Support\Facades\Route;
 
@@ -103,6 +106,7 @@ Route::prefix('v1')
             Route::get('search', [SearchController::class, 'search']);
             Route::get('dashboard/statistics', [DashboardController::class, 'getStatistics']);
             Route::get('dashboard/my-statistics', [DashboardController::class, 'getEmployeeStatistics']);
+            Route::get('dashboard/security-statistics', [DashboardController::class, 'getSecurityStatistics']);
             Route::get('dashboard/quick-action-counts', [DashboardController::class, 'getQuickActionCounts']);
 
             // RBAC routes (Roles & Permissions)
@@ -120,10 +124,31 @@ Route::prefix('v1')
             Route::get('cti/breach-checks/all/paginated', [BreachCheckController::class, 'getAllPaginated']);
 
             Route::post('cti/brand-scans', [BrandScanController::class, 'store']);
+            Route::get('cti/brand-scans/latest', [BrandScanController::class, 'latest']);
             Route::get('cti/brand-scans/{id}', [BrandScanController::class, 'show']);
             Route::post('cti/brand-scan-results/{id}/urlscan', [BrandScanController::class, 'submitUrlscan']);
             Route::get('cti/brand-scan-results/{id}/urlscan', [BrandScanController::class, 'getUrlscan']);
 
             Route::get('cti/audit-logs', [AuditLogController::class, 'index']);
+
+            // Reports routes
+            Route::get('reports/overview', [ReportController::class, 'overview']);
+            Route::get('reports/attendance', [ReportController::class, 'attendance']);
+            Route::get('reports/attendance/export-excel', [ReportController::class, 'exportAttendanceExcel']);
+            Route::get('reports/payroll', [ReportController::class, 'payroll']);
+            Route::get('reports/employees', [ReportController::class, 'employees']);
+            Route::get('reports/activity-log', [ReportController::class, 'activityLog']);
+
+            // Settings routes
+            Route::get('settings', [SettingController::class, 'index']);
+            Route::match(['put', 'post'], 'settings/company', [SettingController::class, 'updateCompany']);
+            Route::match(['put', 'post'], 'settings/notifications', [SettingController::class, 'updateNotifications']);
+            Route::post('settings/change-password', [SettingController::class, 'changePassword']);
+
+            // Notifications routes
+            Route::get('notifications', [NotificationController::class, 'index']);
+            Route::get('notifications/unread-count', [NotificationController::class, 'unreadCount']);
+            Route::patch('notifications/read-all', [NotificationController::class, 'markAllAsRead']);
+            Route::patch('notifications/{id}/read', [NotificationController::class, 'markAsRead']);
         });
     });

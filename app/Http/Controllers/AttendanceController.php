@@ -26,7 +26,7 @@ class AttendanceController extends Controller implements HasMiddleware
     public static function middleware()
     {
         return [
-            new Middleware(PermissionMiddleware::using(['attendance-list']), only: ['index', 'getAllPaginated', 'show', 'getStatistics']),
+            new Middleware(PermissionMiddleware::using(['attendance-list']), only: ['index', 'getAllPaginated', 'show', 'store', 'update', 'destroy', 'getStatistics']),
             new Middleware(PermissionMiddleware::using(['attendance-check-in']), only: ['checkIn']),
             new Middleware(PermissionMiddleware::using(['attendance-check-out']), only: ['checkOut']),
             new Middleware(PermissionMiddleware::using(['attendance-last-attendance']), only: ['getLastAttendance']),

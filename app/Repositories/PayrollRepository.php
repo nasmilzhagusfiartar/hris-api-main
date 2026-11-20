@@ -116,6 +116,9 @@ class PayrollRepository implements PayrollRepositoryInterface
 
             $activeEmployees = EmployeeProfile::with(['jobInformation', 'user'])
                 ->whereIn('id', $employeeIdsWithAttendance)
+                ->whereDoesntHave('user.roles', function ($query) {
+                    $query->where('name', 'security');
+                })
                 ->whereHas('jobInformation', function ($query) {
                     $query->where('status', 'active');
                 })

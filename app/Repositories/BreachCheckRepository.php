@@ -44,9 +44,12 @@ class BreachCheckRepository implements BreachCheckRepositoryInterface
         return $count;
     }
 
-    public function getAllPaginated(?string $search, int $rowPerPage): LengthAwarePaginator
+    public function getAllPaginated(?string $search, int $rowPerPage, ?string $onlyEmail = null): LengthAwarePaginator
     {
         return BreachCheck::query()
+            ->when($onlyEmail !== null, function ($query) use ($onlyEmail) {
+                $query->whereRaw('LOWER(email) = LOWER(?)', [trim($onlyEmail)]);
+            })
             ->when($search, function ($query, $search) {
                 $query->where('email', 'like', "%{$search}%");
             })

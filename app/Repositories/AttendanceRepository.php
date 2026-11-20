@@ -15,13 +15,36 @@ use Illuminate\Support\Facades\DB;
 
 class AttendanceRepository implements AttendanceRepositoryInterface
 {
+    /**
+     * Get employee_profiles.id values that belong to users with the 'security' role (excluded from attendance calculations).
+     *
+     * @return array<int>
+     */
+    private function getSecurityEmployeeIds(): array
+    {
+        return DB::table('employee_profiles')
+            ->join('model_has_roles', function ($join) {
+                $join->on('employee_profiles.user_id', '=', 'model_has_roles.model_id')
+                    ->where('model_has_roles.model_type', '=', \App\Models\User::class);
+            })
+            ->join('roles', 'model_has_roles.role_id', '=', 'roles.id')
+            ->where('roles.name', 'security')
+            ->pluck('employee_profiles.id')
+            ->all();
+    }
+
     public function getAll(
         ?string $search,
         ?string $date,
         ?int $limit,
         bool $execute
     ): Builder|Collection {
+        $excludedIds = $this->getSecurityEmployeeIds();
+
         $query = Attendance::with(['employee.user', 'employee.jobInformation.team'])
+            ->when(! empty($excludedIds), function ($q) use ($excludedIds) {
+                $q->whereNotIn('employee_id', $excludedIds);
+            })
             ->where(function ($query) use ($search, $date) {
                 if ($search) {
                     $query->search($search);
@@ -169,6 +192,7 @@ class AttendanceRepository implements AttendanceRepositoryInterface
         $cacheKey = CacheConstants::CACHE_KEY_ATTENDANCE_STATISTICS.now()->format('Y-m-d-H');
 
         return cache()->remember($cacheKey, 10, function () {
+            $excludedIds = $this->getSecurityEmployeeIds();
             $today = now()->format('Y-m-d');
             $yesterday = now()->subDay()->format('Y-m-d');
             $lastWeekStart = now()->subWeek()->startOfWeek()->format('Y-m-d');
@@ -176,6 +200,7 @@ class AttendanceRepository implements AttendanceRepositoryInterface
 
             // Single optimized query for attendance stats (today & yesterday)
             $attendanceStats = DB::table('attendances')
+                ->when(! empty($excludedIds), fn ($q) => $q->whereNotIn('employee_id', $excludedIds))
                 ->selectRaw("
                     COUNT(CASE
                         WHEN DATE(date) = ?
@@ -240,10 +265,10 @@ class AttendanceRepository implements AttendanceRepositoryInterface
                 ", [$today, $today])
                 ->first();
 
-            // Get cached employee count
-            $totalEmployees = cache()->remember(CacheConstants::CACHE_KEY_EMPLOYEE_TOTAL_COUNT, CacheConstants::ONE_HOUR, function () {
-                return DB::table('employee_profiles')->count();
-            });
+            // Get cached employee count (excluding security role)
+            $totalEmployees = DB::table('employee_profiles')
+                ->when(! empty($excludedIds), fn ($q) => $q->whereNotIn('id', $excludedIds))
+                ->count();
 
             // Calculate rates
             $presentToday = (int) $attendanceStats->present_today;

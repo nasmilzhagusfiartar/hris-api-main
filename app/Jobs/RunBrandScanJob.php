@@ -95,6 +95,26 @@ class RunBrandScanJob implements ShouldQueue
             });
 
             DB::transaction(function () use ($brandScan, $filtered) {
+                // Preserve previous completed urlscan intelligence for matching domains
+                $discoveredDomains = collect($filtered)
+                    ->pluck('domain')
+                    ->filter()
+                    ->unique()
+                    ->values()
+                    ->all();
+
+                $previousUrlscans = [];
+                if (!empty($discoveredDomains)) {
+                    $previousUrlscans = BrandScanResult::query()
+                        ->whereIn('domain', $discoveredDomains)
+                        ->where('urlscan_status', 'done')
+                        ->whereNotNull('urlscan_uuid')
+                        ->orderByDesc('updated_at')
+                        ->get()
+                        ->keyBy('domain')
+                        ->all();
+                }
+
                 $brandScan->results()->delete();
 
                 $totalFound = 0;
@@ -108,6 +128,8 @@ class RunBrandScanJob implements ShouldQueue
                     $dnsMx = isset($item['dns_mx']) ? (is_array($item['dns_mx']) ? $item['dns_mx'] : [$item['dns_mx']]) : [];
                     $dnsNs = isset($item['dns_ns']) ? (is_array($item['dns_ns']) ? $item['dns_ns'] : [$item['dns_ns']]) : [];
 
+                    $prev = $previousUrlscans[$itemDomain] ?? null;
+
                     BrandScanResult::create([
                         'brand_scan_id' => $brandScan->id,
                         'domain' => $itemDomain,
@@ -115,6 +137,14 @@ class RunBrandScanJob implements ShouldQueue
                         'dns_a' => array_values($dnsA),
                         'dns_mx' => array_values($dnsMx),
                         'dns_ns' => array_values($dnsNs),
+                        'urlscan_status' => $prev?->urlscan_status,
+                        'urlscan_uuid' => $prev?->urlscan_uuid,
+                        'urlscan_malicious' => $prev?->urlscan_malicious,
+                        'urlscan_score' => $prev?->urlscan_score,
+                        'urlscan_ip' => $prev?->urlscan_ip,
+                        'urlscan_country' => $prev?->urlscan_country,
+                        'urlscan_screenshot' => $prev?->urlscan_screenshot,
+                        'urlscan_report_url' => $prev?->urlscan_report_url,
                     ]);
 
                     $totalFound++;

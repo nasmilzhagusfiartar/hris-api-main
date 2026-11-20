@@ -11,5 +11,5 @@ interface BreachCheckRepositoryInterface
 
     public function checkAll(): int;
 
-    public function getAllPaginated(?string $search, int $rowPerPage): LengthAwarePaginator;
+    public function getAllPaginated(?string $search, int $rowPerPage, ?string $onlyEmail = null): LengthAwarePaginator;
 }

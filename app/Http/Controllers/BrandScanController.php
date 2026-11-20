@@ -24,9 +24,33 @@ class BrandScanController extends Controller implements HasMiddleware
     public static function middleware()
     {
         return [
-            new Middleware(PermissionMiddleware::using(['cti-brand-scan']), only: ['store', 'show']),
-            new Middleware(PermissionMiddleware::using(['cti-urlscan']), only: ['submitUrlscan', 'getUrlscan']),
+            new Middleware(PermissionMiddleware::using(['cti.brand-protection.view']), only: ['store', 'latest', 'show', 'submitUrlscan', 'getUrlscan']),
         ];
+    }
+
+    /**
+     * Get the latest brand scan (optionally filtered by ?domain=...)
+     */
+    public function latest(\Illuminate\Http\Request $request)
+    {
+        try {
+            $domain = $request->query('domain');
+            $brandScan = $this->brandScanRepository->getLatestScan(is_string($domain) ? $domain : null);
+
+            return ResponseHelper::jsonResponse(
+                true,
+                'Latest brand scan retrieved successfully',
+                $brandScan ? new BrandScanResource($brandScan) : null,
+                200
+            );
+        } catch (\Throwable $e) {
+            return ResponseHelper::jsonResponse(
+                false,
+                'Internal Server Error: ' . $e->getMessage(),
+                null,
+                500
+            );
+        }
     }
 
     /**

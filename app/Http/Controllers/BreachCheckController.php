@@ -24,7 +24,14 @@ class BreachCheckController extends Controller implements HasMiddleware
     public static function middleware()
     {
         return [
-            new Middleware(PermissionMiddleware::using(['cti-breach-check']), only: ['check', 'checkAll', 'getAllPaginated']),
+            new Middleware(
+                PermissionMiddleware::using(['cti.email-breach.check-any|cti.email-breach.check-own']),
+                only: ['check', 'getAllPaginated']
+            ),
+            new Middleware(
+                PermissionMiddleware::using(['cti.email-breach.check-any']),
+                only: ['checkAll']
+            ),
         ];
     }
 
@@ -34,7 +41,21 @@ class BreachCheckController extends Controller implements HasMiddleware
     public function check(BreachCheckRequest $request)
     {
         try {
-            $breachCheck = $this->breachCheckRepository->checkEmail($request->email);
+            $user = $request->user();
+            $targetEmail = strtolower(trim((string) $request->email));
+
+            if (! $user->can('cti.email-breach.check-any')) {
+                if (strcasecmp($targetEmail, trim((string) $user->email)) !== 0) {
+                    return ResponseHelper::jsonResponse(
+                        false,
+                        'Anda hanya memiliki akses untuk memeriksa kebocoran email akun Anda sendiri.',
+                        null,
+                        403
+                    );
+                }
+            }
+
+            $breachCheck = $this->breachCheckRepository->checkEmail($targetEmail);
 
             return ResponseHelper::jsonResponse(
                 true,
@@ -88,9 +109,13 @@ class BreachCheckController extends Controller implements HasMiddleware
         ]);
 
         try {
+            $user = $request->user();
+            $onlyEmail = $user->can('cti.email-breach.check-any') ? null : $user->email;
+
             $breachChecks = $this->breachCheckRepository->getAllPaginated(
                 $validated['search'] ?? null,
-                $validated['row_per_page'] ?? 10
+                $validated['row_per_page'] ?? 10,
+                $onlyEmail
             );
 
             return ResponseHelper::jsonResponse(

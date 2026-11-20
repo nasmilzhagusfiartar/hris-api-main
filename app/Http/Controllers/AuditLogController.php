@@ -10,11 +10,20 @@ use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Controllers\HasMiddleware;
+use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Spatie\Permission\Middleware\PermissionMiddleware;
 
-class AuditLogController extends Controller
+class AuditLogController extends Controller implements HasMiddleware
 {
+    public static function middleware(): array
+    {
+        return [
+            new Middleware(PermissionMiddleware::using(['audit-log.view']), only: ['index']),
+        ];
+    }
     /**
      * Get paginated audit user & session activity logs (read-only).
      */
@@ -188,15 +197,30 @@ class AuditLogController extends Controller
     }
 
     /**
+     * Cross-DB JSON string extraction expression (supports MySQL and SQLite).
+     */
+    private function jsonVal(string $path): string
+    {
+        if (DB::getDriverName() === 'sqlite') {
+            return "json_extract(content, '{$path}')";
+        }
+
+        return "JSON_UNQUOTE(JSON_EXTRACT(content, '{$path}'))";
+    }
+
+    /**
      * Base query on telescope_entries for HTTP requests excluding preflight/polling noise.
      */
     private function buildBaseQuery(): Builder
     {
+        $methodExpr = $this->jsonVal('$.method');
+        $uriExpr = $this->jsonVal('$.uri');
+
         return DB::table('telescope_entries')
             ->where('type', 'request')
-            ->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(content, '$.method')) != 'OPTIONS'")
-            ->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(content, '$.uri')) NOT LIKE '%/api/v1/health%'")
-            ->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(content, '$.uri')) NOT LIKE '%/cti/audit-logs%'");
+            ->whereRaw("{$methodExpr} != 'OPTIONS'")
+            ->whereRaw("{$uriExpr} NOT LIKE '%/api/v1/health%'")
+            ->whereRaw("{$uriExpr} NOT LIKE '%/cti/audit-logs%'");
     }
 
     /**
@@ -204,45 +228,43 @@ class AuditLogController extends Controller
      */
     private function applyActivityFilter(Builder $query, string $activityType): void
     {
+        $methodExpr = $this->jsonVal('$.method');
+        $uriExpr = $this->jsonVal('$.uri');
+        $statusExpr = DB::getDriverName() === 'sqlite'
+            ? "CAST(json_extract(content, '$.response_status') AS INTEGER)"
+            : "CAST(JSON_UNQUOTE(JSON_EXTRACT(content, '$.response_status')) AS UNSIGNED)";
+
         switch ($activityType) {
             case 'failed_login':
-                $query->whereRaw(
-                    "(JSON_UNQUOTE(JSON_EXTRACT(content, '$.uri')) LIKE '%/login%' AND CAST(JSON_UNQUOTE(JSON_EXTRACT(content, '$.response_status')) AS UNSIGNED) >= 400)"
-                );
+                $query->whereRaw("({$uriExpr} LIKE '%/login%' AND {$statusExpr} >= 400)");
                 break;
 
             case 'login':
-                $query->whereRaw(
-                    "(JSON_UNQUOTE(JSON_EXTRACT(content, '$.uri')) LIKE '%/login%' AND JSON_UNQUOTE(JSON_EXTRACT(content, '$.method')) = 'POST' AND CAST(JSON_UNQUOTE(JSON_EXTRACT(content, '$.response_status')) AS UNSIGNED) < 400)"
-                );
+                $query->whereRaw("({$uriExpr} LIKE '%/login%' AND {$methodExpr} = 'POST' AND {$statusExpr} < 400)");
                 break;
 
             case 'logout':
-                $query->whereRaw(
-                    "(JSON_UNQUOTE(JSON_EXTRACT(content, '$.uri')) LIKE '%/logout%' AND JSON_UNQUOTE(JSON_EXTRACT(content, '$.method')) = 'POST')"
-                );
+                $query->whereRaw("({$uriExpr} LIKE '%/logout%' AND {$methodExpr} = 'POST')");
                 break;
 
             case 'delete':
-                $query->whereRaw(
-                    "(JSON_UNQUOTE(JSON_EXTRACT(content, '$.method')) = 'DELETE' OR JSON_UNQUOTE(JSON_EXTRACT(content, '$.uri')) LIKE '%/remove-member%')"
-                );
+                $query->whereRaw("({$methodExpr} = 'DELETE' OR {$uriExpr} LIKE '%/remove-member%')");
                 break;
 
             case 'update':
                 $query->whereRaw(
-                    "(JSON_UNQUOTE(JSON_EXTRACT(content, '$.method')) IN ('PUT', 'PATCH') OR (JSON_UNQUOTE(JSON_EXTRACT(content, '$.method')) = 'POST' AND (JSON_UNQUOTE(JSON_EXTRACT(content, '$.uri')) LIKE '%/approve/%' OR JSON_UNQUOTE(JSON_EXTRACT(content, '$.uri')) LIKE '%/reject/%' OR JSON_UNQUOTE(JSON_EXTRACT(content, '$.uri')) LIKE '%/mark-as-paid%' OR JSON_UNQUOTE(JSON_EXTRACT(content, '$.uri')) LIKE '%/assign-permissions%' OR JSON_UNQUOTE(JSON_EXTRACT(content, '$.uri')) LIKE '%/check-out%')))"
+                    "({$methodExpr} IN ('PUT', 'PATCH') OR ({$methodExpr} = 'POST' AND ({$uriExpr} LIKE '%/approve/%' OR {$uriExpr} LIKE '%/reject/%' OR {$uriExpr} LIKE '%/mark-as-paid%' OR {$uriExpr} LIKE '%/assign-permissions%' OR {$uriExpr} LIKE '%/check-out%')))"
                 );
                 break;
 
             case 'create':
                 $query->whereRaw(
-                    "(JSON_UNQUOTE(JSON_EXTRACT(content, '$.method')) = 'POST' AND JSON_UNQUOTE(JSON_EXTRACT(content, '$.uri')) NOT LIKE '%/login%' AND JSON_UNQUOTE(JSON_EXTRACT(content, '$.uri')) NOT LIKE '%/logout%' AND JSON_UNQUOTE(JSON_EXTRACT(content, '$.uri')) NOT LIKE '%/remove-member%' AND JSON_UNQUOTE(JSON_EXTRACT(content, '$.uri')) NOT LIKE '%/approve/%' AND JSON_UNQUOTE(JSON_EXTRACT(content, '$.uri')) NOT LIKE '%/reject/%' AND JSON_UNQUOTE(JSON_EXTRACT(content, '$.uri')) NOT LIKE '%/mark-as-paid%' AND JSON_UNQUOTE(JSON_EXTRACT(content, '$.uri')) NOT LIKE '%/assign-permissions%' AND JSON_UNQUOTE(JSON_EXTRACT(content, '$.uri')) NOT LIKE '%/check-out%')"
+                    "({$methodExpr} = 'POST' AND {$uriExpr} NOT LIKE '%/login%' AND {$uriExpr} NOT LIKE '%/logout%' AND {$uriExpr} NOT LIKE '%/remove-member%' AND {$uriExpr} NOT LIKE '%/approve/%' AND {$uriExpr} NOT LIKE '%/reject/%' AND {$uriExpr} NOT LIKE '%/mark-as-paid%' AND {$uriExpr} NOT LIKE '%/assign-permissions%' AND {$uriExpr} NOT LIKE '%/check-out%')"
                 );
                 break;
 
             case 'access':
-                $query->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(content, '$.method')) = 'GET'");
+                $query->whereRaw("{$methodExpr} = 'GET'");
                 break;
         }
     }

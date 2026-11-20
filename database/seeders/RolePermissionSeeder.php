@@ -16,10 +16,12 @@ class RolePermissionSeeder extends Seeder
     public function run(): void
     {
         DB::transaction(function () {
-            $manager = Role::firstOrCreate(['name' => 'manager']);
-            $hr = Role::firstOrCreate(['name' => 'hr']);
-            $employee = Role::firstOrCreate(['name' => 'employee']);
-            $finance = Role::firstOrCreate(['name' => 'finance']);
+            $admin = Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'sanctum']);
+            $security = Role::firstOrCreate(['name' => 'security', 'guard_name' => 'sanctum']);
+            $manager = Role::firstOrCreate(['name' => 'manager', 'guard_name' => 'sanctum']);
+            $hr = Role::firstOrCreate(['name' => 'hr', 'guard_name' => 'sanctum']);
+            $employee = Role::firstOrCreate(['name' => 'employee', 'guard_name' => 'sanctum']);
+            $finance = Role::firstOrCreate(['name' => 'finance', 'guard_name' => 'sanctum']);
 
             $employeeSpecific = [
                 'attendance-my-attendances',
@@ -31,9 +33,101 @@ class RolePermissionSeeder extends Seeder
                 'team-view',
             ];
 
-            $manager->syncPermissions($this->permissionsAllExcept($employeeSpecific));
+            // Full CTI permissions reserved for Admin & Security only
+            $restrictedCtiPermissions = [
+                'cti.brand-protection.view',
+                'cti.email-breach.check-any',
+                'audit-log.view',
+                'cti-brand-scan',
+                'cti-urlscan',
+                'cti-breach-check',
+            ];
 
-            $hr->syncPermissions($this->permissionsByPrefixes([
+            // 1. Admin: Full system & CTI access (only admin quick actions, not role-specific duplicate quick actions)
+            $adminExcludedQuickActions = [
+                'quick-action.manager.team-view',
+                'quick-action.manager.leave-approval',
+                'quick-action.manager.project-view',
+                'quick-action.manager.attendance-team',
+                'quick-action.manager.report-team',
+                'quick-action.hr.employee-create',
+                'quick-action.hr.employee-list',
+                'quick-action.hr.leave-approval',
+                'quick-action.hr.attendance-recap',
+                'quick-action.hr.report-view',
+                'quick-action.finance.payroll-create',
+                'quick-action.finance.payroll-list',
+                'quick-action.finance.payroll-export',
+                'quick-action.finance.payroll-report',
+                'quick-action.self.clock-in-out',
+                'quick-action.self.leave-create',
+                'quick-action.self.attendance-history',
+                'quick-action.self.payslips',
+                'quick-action.self.profile',
+                'quick-action.self.check-own-email',
+                'quick-action.security.brand-scan',
+                'quick-action.security.suspicious-domain',
+                'quick-action.security.ssl-monitor',
+                'quick-action.security.breach-check-all',
+                'quick-action.security.audit-user',
+                'quick-action.security.failed-logins',
+            ];
+            $admin->syncPermissions($this->permissionsAllExcept($adminExcludedQuickActions));
+
+            // 2. Security: Full CTI + Audit User + Personal Profile/Leave self-service (NO Attendance, NO HRIS management)
+            $security->syncPermissions(
+                Permission::whereIn('name', [
+                    'cti.brand-protection.view',
+                    'cti.email-breach.check-any',
+                    'audit-log.view',
+                    'cti-menu',
+                    'cti-brand-scan',
+                    'cti-urlscan',
+                    'cti-breach-check',
+                    // Self-service (Profile, Leave, Settings, Notifications — NO Attendance!)
+                    'dashboard-menu',
+                    'dashboard-view',
+                    'profile-menu',
+                    'profile-view',
+                    'leave-request-menu',
+                    'leave-request-create',
+                    'leave-request-my-requests',
+                    'setting-menu',
+                    'setting-view',
+                    'notification-list',
+                    'notification-read',
+                    // Security Quick Actions (6 shortcuts)
+                    'quick-action.security.brand-scan',
+                    'quick-action.security.suspicious-domain',
+                    'quick-action.security.ssl-monitor',
+                    'quick-action.security.breach-check-all',
+                    'quick-action.security.audit-user',
+                    'quick-action.security.failed-logins',
+                ])->get()
+            );
+
+            // 3. Manager: All HRIS management permissions EXCEPT full CTI & Audit User; only check-own for email breach
+            $allQuickActions = Permission::where('name', 'like', 'quick-action.%')->pluck('name')->all();
+            $managerExcluded = array_merge($employeeSpecific, $restrictedCtiPermissions, $allQuickActions);
+            $managerPermissions = $this->permissionsAllExcept($managerExcluded)
+                ->pluck('name')
+                ->push(
+                    'cti-menu',
+                    'cti.email-breach.check-own',
+                    // Manager Quick Actions (6 shortcuts)
+                    'quick-action.manager.team-view',
+                    'quick-action.manager.leave-approval',
+                    'quick-action.manager.project-view',
+                    'quick-action.manager.attendance-team',
+                    'quick-action.manager.report-team',
+                    'quick-action.self.check-own-email'
+                )
+                ->unique()
+                ->all();
+            $manager->syncPermissions(Permission::whereIn('name', $managerPermissions)->get());
+
+            // 4. HR: HRIS modules + check-own for email breach + 6 HR Quick Actions
+            $hrPermissions = $this->permissionsByPrefixes([
                 'dashboard-',
                 'team-',
                 'employee-',
@@ -42,9 +136,70 @@ class RolePermissionSeeder extends Seeder
                 'attendance-',
                 'leave-request-',
                 'profile-',
-                'cti-',
-            ], $employeeSpecific));
+                'report-',
+                'setting-',
+                'notification-',
+            ], array_merge($employeeSpecific, $restrictedCtiPermissions))
+                ->pluck('name')
+                ->push(
+                    'cti-menu',
+                    'cti.email-breach.check-own',
+                    // HR Quick Actions (6 shortcuts)
+                    'quick-action.hr.employee-create',
+                    'quick-action.hr.employee-list',
+                    'quick-action.hr.leave-approval',
+                    'quick-action.hr.attendance-recap',
+                    'quick-action.hr.report-view',
+                    'quick-action.self.check-own-email'
+                )
+                ->unique()
+                ->all();
+            $hr->syncPermissions(Permission::whereIn('name', $hrPermissions)->get());
 
+            // 5. Finance: Payroll & Reports + Clock In/Out + check-own for email breach + 6 Finance Quick Actions
+            $finance->syncPermissions(
+                Permission::whereIn('name', [
+                    'dashboard-menu',
+                    'dashboard-view',
+                    'profile-menu',
+                    'profile-view',
+                    'employee-menu',
+                    'employee-list',
+                    'attendance-menu',
+                    'attendance-list',
+                    'attendance-my-attendances',
+                    'attendance-check-in',
+                    'attendance-check-out',
+                    'attendance-last-attendance',
+                    'leave-request-menu',
+                    'leave-request-list',
+                    'payroll-menu',
+                    'payroll-list',
+                    'payroll-create',
+                    'payroll-edit',
+                    'payroll-delete',
+                    'payroll-process',
+                    'payroll-statistics',
+                    'report-menu',
+                    'report-view',
+                    'report-export',
+                    'setting-menu',
+                    'setting-view',
+                    'notification-list',
+                    'notification-read',
+                    'cti-menu',
+                    'cti.email-breach.check-own',
+                    // Finance Quick Actions (6 shortcuts)
+                    'quick-action.finance.payroll-create',
+                    'quick-action.finance.payroll-list',
+                    'quick-action.finance.payroll-export',
+                    'quick-action.finance.payroll-report',
+                    'quick-action.self.clock-in-out',
+                    'quick-action.self.check-own-email',
+                ])->get()
+            );
+
+            // 6. Employee: Self-service + check-own for email breach + 6 Employee Quick Actions
             $employee->syncPermissions(
                 Permission::whereIn('name', [
                     'dashboard-menu',
@@ -66,28 +221,19 @@ class RolePermissionSeeder extends Seeder
                     'task-create',
                     'task-list',
                     'task-edit',
-                ])->get()
-            );
-
-            $finance->syncPermissions(
-                Permission::whereIn('name', [
-                    'dashboard-menu',
-                    'dashboard-view',
-                    'profile-menu',
-                    'profile-view',
-                    'employee-menu',
-                    'employee-list',
-                    'attendance-menu',
-                    'attendance-list',
-                    'leave-request-menu',
-                    'leave-request-list',
-                    'payroll-menu',
-                    'payroll-list',
-                    'payroll-create',
-                    'payroll-edit',
-                    'payroll-delete',
-                    'payroll-process',
-                    'payroll-statistics',
+                    'setting-menu',
+                    'setting-view',
+                    'notification-list',
+                    'notification-read',
+                    'cti-menu',
+                    'cti.email-breach.check-own',
+                    // Employee Quick Actions (6 shortcuts)
+                    'quick-action.self.clock-in-out',
+                    'quick-action.self.leave-create',
+                    'quick-action.self.attendance-history',
+                    'quick-action.self.payslips',
+                    'quick-action.self.profile',
+                    'quick-action.self.check-own-email',
                 ])->get()
             );
         });

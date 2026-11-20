@@ -29,9 +29,12 @@ class UserResource extends JsonResource
             'roles' => $this->whenLoaded('roles', function () {
                 return $this->roles->pluck('name');
             }),
-            'permissions' => $this->whenLoaded('permissions', function () {
-                return $this->getAllPermissions()->pluck('name');
-            }),
+            'permissions' => $this->when(
+                $this->relationLoaded('permissions') || $this->relationLoaded('roles'),
+                function () {
+                    return $this->getAllPermissions()->pluck('name');
+                }
+            ),
             'token' => $this->when(isset($this->token), $this->token),
             'created_at' => $this->created_at,
         ];

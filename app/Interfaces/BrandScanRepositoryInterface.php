@@ -9,6 +9,8 @@ interface BrandScanRepositoryInterface
 {
     public function createScan(string $domain): BrandScan;
 
+    public function getLatestScan(?string $domain = null): ?BrandScan;
+
     public function getScanById(string|int $id): BrandScan;
 
     public function submitUrlscan(string|int $resultId): BrandScanResult;

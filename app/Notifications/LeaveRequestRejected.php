@@ -29,7 +29,7 @@ class LeaveRequestRejected extends Notification implements ShouldQueue
      */
     public function via(object $notifiable): array
     {
-        return ['mail'];
+        return ['mail', 'database'];
     }
 
     /**
@@ -59,7 +59,15 @@ class LeaveRequestRejected extends Notification implements ShouldQueue
      */
     public function toArray(object $notifiable): array
     {
+        $leaveTypeLabel = is_object($this->leaveRequest->leave_type) && method_exists($this->leaveRequest->leave_type, 'label')
+            ? $this->leaveRequest->leave_type->label()
+            : (string) ($this->leaveRequest->leave_type->value ?? $this->leaveRequest->leave_type);
+
         return [
+            'type' => 'leave_request_rejected',
+            'title' => 'Permohonan Cuti Ditolak',
+            'message' => "Permohonan cuti ({$leaveTypeLabel}) selama {$this->leaveRequest->total_days} hari tidak dapat disetujui.",
+            'route_name' => 'employee.attendance.my-attendances',
             'leave_request_id' => $this->leaveRequest->id,
             'leave_type' => $this->leaveRequest->leave_type,
             'start_date' => $this->leaveRequest->start_date,

@@ -30,9 +30,71 @@ class BrandScanRepository implements BrandScanRepositoryInterface
         return $brandScan;
     }
 
+    public function getLatestScan(?string $domain = null): ?BrandScan
+    {
+        $query = BrandScan::with('results')->orderByDesc('id');
+
+        if ($domain !== null && trim($domain) !== '') {
+            $query->where('domain', strtolower(trim($domain)));
+        }
+
+        $brandScan = $query->first();
+
+        if ($brandScan && $brandScan->relationLoaded('results')) {
+            $this->backfillPreviousUrlscanResults($brandScan);
+        }
+
+        return $brandScan;
+    }
+
     public function getScanById(string|int $id): BrandScan
     {
-        return BrandScan::with('results')->findOrFail($id);
+        $brandScan = BrandScan::with('results')->findOrFail($id);
+        $this->backfillPreviousUrlscanResults($brandScan);
+
+        return $brandScan;
+    }
+
+    /**
+     * Backfill any missing urlscan intelligence from earlier scans of the same typosquatting domain.
+     */
+    private function backfillPreviousUrlscanResults(BrandScan $brandScan): void
+    {
+        $missingResults = $brandScan->results->filter(fn (BrandScanResult $r) => empty($r->urlscan_status));
+
+        if ($missingResults->isEmpty()) {
+            return;
+        }
+
+        $domains = $missingResults->pluck('domain')->unique()->values()->all();
+
+        $previousScanned = BrandScanResult::query()
+            ->whereIn('domain', $domains)
+            ->where('urlscan_status', 'done')
+            ->whereNotNull('urlscan_uuid')
+            ->orderByDesc('updated_at')
+            ->get()
+            ->keyBy('domain');
+
+        if ($previousScanned->isEmpty()) {
+            return;
+        }
+
+        foreach ($missingResults as $result) {
+            $prev = $previousScanned->get($result->domain);
+            if ($prev) {
+                $result->update([
+                    'urlscan_status' => $prev->urlscan_status,
+                    'urlscan_uuid' => $prev->urlscan_uuid,
+                    'urlscan_malicious' => $prev->urlscan_malicious,
+                    'urlscan_score' => $prev->urlscan_score,
+                    'urlscan_ip' => $prev->urlscan_ip,
+                    'urlscan_country' => $prev->urlscan_country,
+                    'urlscan_screenshot' => $prev->urlscan_screenshot,
+                    'urlscan_report_url' => $prev->urlscan_report_url,
+                ]);
+            }
+        }
     }
 
     public function submitUrlscan(string|int $resultId): BrandScanResult
