@@ -2,31 +2,117 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\MfaVerificationException;
 use App\Helpers\ResponseHelper;
 use App\Http\Requests\LoginStoreRequest;
 use App\Http\Resources\UserResource;
 use App\Interfaces\AuthRepositoryInterface;
+use App\Models\User;
+use App\Services\MfaService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
 {
     private AuthRepositoryInterface $authRepository;
 
-    public function __construct(AuthRepositoryInterface $authRepository)
-    {
+    private MfaService $mfaService;
+
+    public function __construct(
+        AuthRepositoryInterface $authRepository,
+        MfaService $mfaService
+    ) {
         $this->authRepository = $authRepository;
+        $this->mfaService = $mfaService;
     }
 
     public function login(LoginStoreRequest $request)
     {
-        $request = $request->validated();
+        $credentials = $request->validated();
 
         try {
-            $user = $this->authRepository->login($request);
+            $user = User::with(['roles', 'permissions'])
+                ->where('email', $credentials['email'])
+                ->first();
+
+            if (! $user || ! Hash::check($credentials['password'], $user->password)) {
+                return ResponseHelper::jsonResponse(false, 'Unauthorized', null, 401);
+            }
+
+            // If MFA is globally enabled, enforce lockout and TOTP challenge
+            if ($this->mfaService->isGloballyEnabled()) {
+                $lockoutRemaining = $this->mfaService->getLockoutRemainingMinutes($user->id);
+                if ($lockoutRemaining > 0) {
+                    return ResponseHelper::jsonResponse(
+                        false,
+                        "Account is temporarily locked due to too many failed MFA attempts. Try again in {$lockoutRemaining} minute(s).",
+                        [
+                            'locked' => true,
+                            'lockout_minutes' => $lockoutRemaining,
+                        ],
+                        423
+                    );
+                }
+
+                if ($user->hasMfaEnabled()) {
+                    $mfaToken = $this->mfaService->createLoginChallenge($user);
+
+                    return ResponseHelper::jsonResponse(
+                        true,
+                        'MFA verification required',
+                        [
+                            'mfa_required' => true,
+                            'mfa_token' => $mfaToken,
+                        ],
+                        200
+                    );
+                }
+            }
+
+            if ($user->hasRole('employee')) {
+                $user->load('employeeProfile');
+            }
+            $user->token = $user->createToken('auth_token')->plainTextToken;
 
             return ResponseHelper::jsonResponse(true, 'Login Successful', new UserResource($user), 200);
         } catch (\Exception $e) {
-            return ResponseHelper::jsonResponse(false, $e->getMessage(), null, $e->getCode());
+            $code = (int) $e->getCode();
+            $status = ($code >= 400 && $code < 600) ? $code : 500;
+
+            return ResponseHelper::jsonResponse(false, $e->getMessage(), null, $status);
+        }
+    }
+
+    /**
+     * POST /api/v1/login/mfa-verify
+     */
+    public function mfaVerify(Request $request)
+    {
+        $validated = $request->validate([
+            'mfa_token' => ['required', 'string'],
+            'code' => ['nullable', 'string', 'required_without:recovery_code'],
+            'recovery_code' => ['nullable', 'string', 'required_without:code'],
+        ]);
+
+        try {
+            $result = $this->mfaService->verifyLoginChallenge(
+                $validated['mfa_token'],
+                $validated['code'] ?? null,
+                $validated['recovery_code'] ?? null,
+                $request
+            );
+
+            $user = $result['user'];
+            if ($user->hasRole('employee')) {
+                $user->load('employeeProfile');
+            }
+            $user->token = $user->createToken('auth_token')->plainTextToken;
+
+            return ResponseHelper::jsonResponse(true, 'Login Successful', new UserResource($user), 200);
+        } catch (MfaVerificationException $e) {
+            return ResponseHelper::jsonResponse(false, $e->getMessage(), $e->mfaData ?: null, $e->getCode() ?: 422);
+        } catch (\Throwable $e) {
+            return ResponseHelper::jsonResponse(false, 'Failed to verify MFA code: '.$e->getMessage(), null, 500);
         }
     }
 

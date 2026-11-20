@@ -14,6 +14,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'project.member' => \App\Http\Middleware\EnsureProjectMembership::class,
+            'mfa.enrolled' => \App\Http\Middleware\EnsureMfaEnrolled::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

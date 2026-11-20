@@ -125,6 +125,7 @@ class PermissionSeeder extends Seeder
             'cti.email-breach.check-any',
             'cti.email-breach.check-own',
             'audit-log.view',
+            'mfa.reset-user',
             // Role-scoped Quick Action permissions
             'quick-action.admin.all',
             'quick-action.manager.team-view',

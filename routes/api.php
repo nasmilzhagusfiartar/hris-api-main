@@ -8,6 +8,7 @@ use App\Http\Controllers\BreachCheckController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmployeeProfileController;
 use App\Http\Controllers\LeaveRequestController;
+use App\Http\Controllers\MfaController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OptionController;
 use App\Http\Controllers\PayrollController;
@@ -21,7 +22,7 @@ use App\Http\Controllers\SettingController;
 use App\Http\Controllers\TeamController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware('auth:sanctum')->get('search', [SearchController::class, 'search']);
+Route::middleware(['auth:sanctum', 'mfa.enrolled'])->get('search', [SearchController::class, 'search']);
 
 Route::prefix('v1')
     ->group(function () {
@@ -34,13 +35,26 @@ Route::prefix('v1')
             ]);
         });
 
-        Route::post('login', [AuthController::class, 'login']);
+        Route::post('login', [AuthController::class, 'login'])->middleware('throttle:5,1');
+        Route::post('login/mfa-verify', [AuthController::class, 'mfaVerify'])->middleware('throttle:5,1');
 
         Route::middleware('auth:sanctum')->group(function () {
+            // Allowed even when MFA enrollment is pending for enforced roles
             Route::get('me', [AuthController::class, 'me']);
             Route::put('me', [AuthController::class, 'updateProfile']);
-
             Route::post('logout', [AuthController::class, 'logout']);
+
+            // MFA self-service endpoints
+            Route::get('mfa/status', [MfaController::class, 'status']);
+            Route::post('mfa/setup', [MfaController::class, 'setup']);
+            Route::post('mfa/enable', [MfaController::class, 'enable']);
+            Route::post('mfa/disable', [MfaController::class, 'disable']);
+            Route::post('mfa/recovery-codes/regenerate', [MfaController::class, 'regenerateRecoveryCodes']);
+
+            // All other endpoints require MFA enrollment if user's role is enforced
+            Route::middleware('mfa.enrolled')->group(function () {
+                // Admin MFA reset
+                Route::post('users/{user}/mfa/reset', [MfaController::class, 'resetUser']);
 
             Route::get('teams/statistics', [TeamController::class, 'getStatistics']);
             Route::get('teams/all/paginated', [TeamController::class, 'getAllPaginated']);
@@ -150,5 +164,6 @@ Route::prefix('v1')
             Route::get('notifications/unread-count', [NotificationController::class, 'unreadCount']);
             Route::patch('notifications/read-all', [NotificationController::class, 'markAllAsRead']);
             Route::patch('notifications/{id}/read', [NotificationController::class, 'markAsRead']);
+            });
         });
     });

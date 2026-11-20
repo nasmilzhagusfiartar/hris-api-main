@@ -535,11 +535,34 @@ class DashboardRepository implements DashboardRepositoryInterface
             }
         }
 
+        // 5. Users without MFA enabled
+        $usersWithoutMfaCount = (int) DB::table('users')
+            ->whereNull('deleted_at')
+            ->whereNull('mfa_enabled_at')
+            ->count();
+
+        // 6. Failed MFA attempts in the last 24 hours
+        $mfaFailed24hCount = 0;
+        if (DB::getSchemaBuilder()->hasTable('telescope_entries')) {
+            try {
+                $sinceUtc = now()->subHours(24)->setTimezone('UTC')->format('Y-m-d H:i:s');
+                $mfaFailed24hCount = (int) DB::table('telescope_entries')
+                    ->where('type', 'request')
+                    ->where('created_at', '>=', $sinceUtc)
+                    ->where('content', 'like', '%"mfa_event":"mfa_failed"%')
+                    ->count();
+            } catch (\Throwable $e) {
+                $mfaFailed24hCount = 0;
+            }
+        }
+
         return [
             'suspicious_domains_count' => $suspiciousDomainsCount,
             'expiring_ssl_count' => $expiringSslCount,
             'breached_emails_count' => $breachedEmailsCount,
             'failed_logins_24h_count' => $failedLogins24hCount,
+            'users_without_mfa_count' => $usersWithoutMfaCount,
+            'mfa_failed_24h_count' => $mfaFailed24hCount,
             'recent_brand_threats' => $recentBrandThreats,
             'recent_breaches' => $recentBreaches,
         ];

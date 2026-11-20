@@ -150,6 +150,65 @@ class AuditLogResource extends JsonResource
         $cleanPath = parse_url($uri, PHP_URL_PATH) ?: $uri;
         $module = self::detectModule($cleanPath);
 
+        // 0. Explicit MFA security events
+        if (! empty($content['mfa_event'])) {
+            $event = (string) $content['mfa_event'];
+            $meta = is_array($content['mfa_meta'] ?? null) ? $content['mfa_meta'] : [];
+
+            return match ($event) {
+                'mfa_enabled' => [
+                    'type' => 'mfa_enabled',
+                    'label' => 'MFA Enabled',
+                    'description' => 'User enabled TOTP Multi-Factor Authentication',
+                    'module' => 'MFA / Authentication',
+                ],
+                'mfa_disabled' => [
+                    'type' => 'mfa_disabled',
+                    'label' => 'MFA Disabled',
+                    'description' => 'User disabled TOTP Multi-Factor Authentication',
+                    'module' => 'MFA / Authentication',
+                ],
+                'mfa_success' => [
+                    'type' => 'mfa_success',
+                    'label' => 'MFA Verified',
+                    'description' => ($meta['method'] ?? 'totp') === 'recovery_code'
+                        ? 'MFA verification succeeded using a recovery code'
+                        : 'MFA verification succeeded via TOTP code',
+                    'module' => 'MFA / Authentication',
+                ],
+                'mfa_failed' => [
+                    'type' => 'mfa_failed',
+                    'label' => 'MFA Failed',
+                    'description' => 'Failed MFA verification attempt ('.($meta['remaining_attempts'] ?? 0).' attempt(s) remaining)',
+                    'module' => 'MFA / Authentication',
+                ],
+                'mfa_recovery_used' => [
+                    'type' => 'mfa_recovery_used',
+                    'label' => 'Recovery Code Used',
+                    'description' => 'User signed in with a one-time MFA recovery code ('.($meta['remaining_recovery_codes'] ?? 0).' remaining)',
+                    'module' => 'MFA / Authentication',
+                ],
+                'mfa_locked' => [
+                    'type' => 'mfa_locked',
+                    'label' => 'MFA Locked',
+                    'description' => 'Account locked for '.($meta['lockout_minutes'] ?? 15).' minutes after 5 failed MFA attempts',
+                    'module' => 'MFA / Authentication',
+                ],
+                'mfa_reset' => [
+                    'type' => 'mfa_reset',
+                    'label' => 'MFA Reset',
+                    'description' => 'MFA reset for '.($meta['target_user_email'] ?? 'user').' by '.($meta['reset_by_name'] ?? 'Admin').' ('.($meta['via'] ?? 'admin_api').')',
+                    'module' => 'MFA / Authentication',
+                ],
+                default => [
+                    'type' => $event,
+                    'label' => 'MFA Event',
+                    'description' => "MFA security event: {$event}",
+                    'module' => 'MFA / Authentication',
+                ],
+            };
+        }
+
         // 1. Failed Login
         if (stripos($cleanPath, '/login') !== false && $statusCode >= 400) {
             return [

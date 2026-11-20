@@ -38,6 +38,7 @@ class RolePermissionSeeder extends Seeder
                 'cti.brand-protection.view',
                 'cti.email-breach.check-any',
                 'audit-log.view',
+                'mfa.reset-user',
                 'cti-brand-scan',
                 'cti-urlscan',
                 'cti-breach-check',

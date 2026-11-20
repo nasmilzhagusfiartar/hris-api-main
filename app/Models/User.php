@@ -35,6 +35,9 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+        'mfa_secret',
+        'mfa_enabled_at',
+        'mfa_recovery_codes',
     ];
 
     /**
@@ -47,7 +50,33 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'mfa_secret' => 'encrypted',
+            'mfa_enabled_at' => 'datetime',
+            'mfa_recovery_codes' => 'encrypted:array',
         ];
+    }
+
+    public function hasMfaEnabled(): bool
+    {
+        return $this->mfa_enabled_at !== null && ! empty($this->mfa_secret);
+    }
+
+    public function requiresMfa(): bool
+    {
+        if (! config('mfa.enabled', true)) {
+            return false;
+        }
+
+        $enforcedRoles = config('mfa.enforce_roles', []);
+        if (empty($enforcedRoles)) {
+            return false;
+        }
+
+        $userRoles = $this->getRoleNames()
+            ->map(static fn (string $role): string => strtolower($role))
+            ->all();
+
+        return count(array_intersect($userRoles, $enforcedRoles)) > 0;
     }
 
     public function employeeProfile()
