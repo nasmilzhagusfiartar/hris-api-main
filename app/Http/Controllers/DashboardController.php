@@ -64,7 +64,7 @@ class DashboardController extends Controller implements HasMiddleware
             if (! $user || (! $user->hasAnyRole(['admin', 'hr', 'manager', 'finance']))) {
                 return ResponseHelper::jsonResponse(
                     false,
-                    'Anda tidak memiliki akses ke statistik HRIS global.',
+                    "You don't have permission to access global HRIS statistics.",
                     null,
                     403
                 );

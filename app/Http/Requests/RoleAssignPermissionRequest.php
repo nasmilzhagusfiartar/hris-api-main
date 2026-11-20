@@ -28,8 +28,8 @@ class RoleAssignPermissionRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'permissions.required' => 'Daftar permissions wajib diisi.',
-            'permissions.array' => 'Permissions harus berupa array.',
+            'permissions.required' => 'Permissions list is required.',
+            'permissions.array' => 'Permissions must be an array.',
         ];
     }
 }

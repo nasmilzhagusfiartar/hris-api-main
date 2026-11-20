@@ -108,7 +108,7 @@ class SettingRepository implements SettingRepositoryInterface
     public function changePassword(User $user, string $currentPassword, string $newPassword): bool
     {
         if (! Hash::check($currentPassword, $user->password)) {
-            throw new \InvalidArgumentException('Password saat ini tidak sesuai.', 422);
+            throw new \InvalidArgumentException('Current password is incorrect.', 422);
         }
 
         $user->update([

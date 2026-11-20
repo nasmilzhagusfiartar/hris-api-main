@@ -37,8 +37,8 @@ class RoleUpdateRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'name.required' => 'Nama role wajib diisi.',
-            'name.unique' => 'Nama role sudah terdaftar.',
+            'name.required' => 'Role name is required.',
+            'name.unique' => 'Role name is already registered.',
         ];
     }
 }

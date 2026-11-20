@@ -38,18 +38,18 @@ class LeaveRequestCreated extends Notification implements ShouldQueue
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject('Permohonan Cuti Sedang Diproses')
-            ->greeting('Halo '.$notifiable->name.',')
-            ->line('Permohonan cuti kamu sedang menunggu persetujuan HR.')
-            ->line('**Detail Permohonan:**')
-            ->line('Jenis Cuti: '.$this->leaveRequest->leave_type->label())
-            ->line('Tanggal Mulai: '.$this->leaveRequest->start_date->format('d M Y'))
-            ->line('Tanggal Selesai: '.$this->leaveRequest->end_date->format('d M Y'))
-            ->line('Total Hari: '.$this->leaveRequest->total_days.' hari kerja')
-            ->line('Status: Menunggu Persetujuan')
-            ->action('Lihat Detail', url('/my-attendance'))
-            ->line('Kamu akan menerima notifikasi setelah permohonan ditinjau.')
-            ->salutation('Terima kasih, Tim HR HIP HRIS');
+            ->subject('Leave Request Submitted')
+            ->greeting('Hello '.$notifiable->name.',')
+            ->line('Your leave request is pending HR approval.')
+            ->line('**Request Details:**')
+            ->line('Leave Type: '.$this->leaveRequest->leave_type->label())
+            ->line('Start Date: '.$this->leaveRequest->start_date->format('d M Y'))
+            ->line('End Date: '.$this->leaveRequest->end_date->format('d M Y'))
+            ->line('Total Days: '.$this->leaveRequest->total_days.' working day(s)')
+            ->line('Status: Pending Approval')
+            ->action('View Details', url('/my-attendance'))
+            ->line('You will receive a notification once your request has been reviewed.')
+            ->salutation('Thank you, HIP HRIS HR Team');
     }
 
     /**
@@ -65,8 +65,8 @@ class LeaveRequestCreated extends Notification implements ShouldQueue
 
         return [
             'type' => 'leave_request_created',
-            'title' => 'Pengajuan Cuti Diproses',
-            'message' => "Pengajuan cuti ({$leaveTypeLabel}) selama {$this->leaveRequest->total_days} hari sedang menunggu persetujuan.",
+            'title' => 'Leave Request Submitted',
+            'message' => "Your leave request ({$leaveTypeLabel}) for {$this->leaveRequest->total_days} day(s) is pending approval.",
             'route_name' => 'employee.attendance.my-attendances',
             'leave_request_id' => $this->leaveRequest->id,
             'leave_type' => $this->leaveRequest->leave_type,

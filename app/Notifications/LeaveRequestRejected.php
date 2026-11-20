@@ -38,18 +38,18 @@ class LeaveRequestRejected extends Notification implements ShouldQueue
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject('Permohonan Cuti Ditolak')
-            ->greeting('Halo '.$notifiable->name.',')
-            ->line('Permohonan cuti kamu tidak dapat disetujui.')
-            ->line('**Detail Permohonan:**')
-            ->line('Jenis Cuti: '.$this->leaveRequest->leave_type->label())
-            ->line('Tanggal Mulai: '.$this->leaveRequest->start_date->format('d M Y'))
-            ->line('Tanggal Selesai: '.$this->leaveRequest->end_date->format('d M Y'))
-            ->line('Total Hari: '.$this->leaveRequest->total_days.' hari kerja')
-            ->line('Status: **Ditolak**')
-            ->action('Lihat Detail', url('/my-attendance'))
-            ->line('Jika kamu memiliki pertanyaan, silakan hubungi Tim HR untuk informasi lebih lanjut.')
-            ->salutation('Terima kasih, Tim HR HIP HRIS');
+            ->subject('Leave Request Rejected')
+            ->greeting('Hello '.$notifiable->name.',')
+            ->line('Unfortunately, your leave request could not be approved.')
+            ->line('**Request Details:**')
+            ->line('Leave Type: '.$this->leaveRequest->leave_type->label())
+            ->line('Start Date: '.$this->leaveRequest->start_date->format('d M Y'))
+            ->line('End Date: '.$this->leaveRequest->end_date->format('d M Y'))
+            ->line('Total Days: '.$this->leaveRequest->total_days.' working day(s)')
+            ->line('Status: **Rejected**')
+            ->action('View Details', url('/my-attendance'))
+            ->line('If you have any questions, please contact the HR Team for further information.')
+            ->salutation('Thank you, HIP HRIS HR Team');
     }
 
     /**
@@ -65,8 +65,8 @@ class LeaveRequestRejected extends Notification implements ShouldQueue
 
         return [
             'type' => 'leave_request_rejected',
-            'title' => 'Permohonan Cuti Ditolak',
-            'message' => "Permohonan cuti ({$leaveTypeLabel}) selama {$this->leaveRequest->total_days} hari tidak dapat disetujui.",
+            'title' => 'Leave Request Rejected',
+            'message' => "Your leave request ({$leaveTypeLabel}) for {$this->leaveRequest->total_days} day(s) could not be approved.",
             'route_name' => 'employee.attendance.my-attendances',
             'leave_request_id' => $this->leaveRequest->id,
             'leave_type' => $this->leaveRequest->leave_type,

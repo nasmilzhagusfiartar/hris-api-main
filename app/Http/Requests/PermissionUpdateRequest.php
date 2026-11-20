@@ -37,8 +37,8 @@ class PermissionUpdateRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'name.required' => 'Nama permission wajib diisi.',
-            'name.unique' => 'Nama permission sudah terdaftar.',
+            'name.required' => 'Permission name is required.',
+            'name.unique' => 'Permission name is already registered.',
         ];
     }
 }

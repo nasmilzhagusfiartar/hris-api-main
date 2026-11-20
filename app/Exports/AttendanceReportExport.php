@@ -33,19 +33,19 @@ class AttendanceReportExport implements FromCollection, ShouldAutoSize, WithHead
     {
         return [
             'No',
-            'ID Karyawan',
-            'Nama Karyawan',
+            'Employee ID',
+            'Employee Name',
             'Email',
-            'Tim',
-            'Departemen',
-            'Jabatan',
-            'Hadir',
-            'Terlambat',
-            'Izin / Cuti',
-            'Sakit',
-            'Alpa',
-            'Total Hari',
-            'Tingkat Kehadiran (%)',
+            'Team',
+            'Department',
+            'Job Title',
+            'Present',
+            'Late',
+            'Leave / Permission',
+            'Sick',
+            'Absent',
+            'Total Days',
+            'Attendance Rate (%)',
         ];
     }
 
@@ -94,6 +94,6 @@ class AttendanceReportExport implements FromCollection, ShouldAutoSize, WithHead
 
     public function title(): string
     {
-        return 'Laporan Absensi';
+        return 'Attendance Report';
     }
 }

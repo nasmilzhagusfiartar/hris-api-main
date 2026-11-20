@@ -37,9 +37,9 @@ class RoleStoreRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'name.required' => 'Nama role wajib diisi.',
-            'name.unique' => 'Nama role sudah terdaftar.',
-            'permissions.array' => 'Permissions harus berupa array.',
+            'name.required' => 'Role name is required.',
+            'name.unique' => 'Role name is already registered.',
+            'permissions.array' => 'Permissions must be an array.',
         ];
     }
 }

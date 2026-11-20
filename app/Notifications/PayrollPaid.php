@@ -42,24 +42,24 @@ class PayrollPaid extends Notification implements ShouldQueue
         $paymentDate = \Carbon\Carbon::parse($payroll->payment_date)->format('d F Y');
 
         return (new MailMessage)
-            ->subject('Slip Gaji '.$salaryMonth.' Telah Dibayar')
-            ->greeting('Halo '.$notifiable->name.',')
-            ->line('Gaji untuk periode **'.$salaryMonth.'** telah dibayarkan.')
-            ->line('**Detail Gaji:**')
-            ->line('Gaji Pokok: Rp '.number_format($this->payrollDetail->original_salary, 0, ',', '.'))
-            ->line('Potongan: Rp '.number_format($this->payrollDetail->original_salary - $this->payrollDetail->final_salary, 0, ',', '.'))
-            ->line('Total Diterima: Rp '.number_format($this->payrollDetail->final_salary, 0, ',', '.'))
-            ->line('Tanggal Pembayaran: '.$paymentDate)
-            ->line('**Kehadiran:**')
-            ->line('Hadir: '.$this->payrollDetail->attended_days.' hari')
-            ->line('Sakit: '.$this->payrollDetail->sick_days.' hari')
-            ->line('Absen: '.$this->payrollDetail->absent_days.' hari')
+            ->subject('Payslip for '.$salaryMonth.' Has Been Paid')
+            ->greeting('Hello '.$notifiable->name.',')
+            ->line('Your salary for **'.$salaryMonth.'** has been paid.')
+            ->line('**Salary Details:**')
+            ->line('Base Salary: Rp '.number_format($this->payrollDetail->original_salary, 0, '.', ','))
+            ->line('Deductions: Rp '.number_format($this->payrollDetail->original_salary - $this->payrollDetail->final_salary, 0, '.', ','))
+            ->line('Net Salary Received: Rp '.number_format($this->payrollDetail->final_salary, 0, '.', ','))
+            ->line('Payment Date: '.$paymentDate)
+            ->line('**Attendance Summary:**')
+            ->line('Present: '.$this->payrollDetail->attended_days.' day(s)')
+            ->line('Sick: '.$this->payrollDetail->sick_days.' day(s)')
+            ->line('Absent: '.$this->payrollDetail->absent_days.' day(s)')
             ->when($this->payrollDetail->notes, function ($message) {
-                return $message->line('Catatan: '.$this->payrollDetail->notes);
+                return $message->line('Notes: '.$this->payrollDetail->notes);
             })
-            ->action('Lihat Slip Gaji', url('/admin/my-payslips'))
-            ->line('Terima kasih atas kontribusi Anda.')
-            ->salutation('Salam, Tim Finance HIP HRIS');
+            ->action('View Payslip', url('/admin/my-payslips'))
+            ->line('Thank you for your contribution.')
+            ->salutation('Regards, HIP HRIS Finance Team');
     }
 
     /**
@@ -75,8 +75,8 @@ class PayrollPaid extends Notification implements ShouldQueue
 
         return [
             'type' => 'payroll_paid',
-            'title' => "Slip Gaji {$salaryMonth} Telah Dibayar",
-            'message' => 'Gaji sebesar Rp '.number_format((float) $this->payrollDetail->final_salary, 0, ',', '.')." untuk periode {$salaryMonth} telah dibayarkan.",
+            'title' => "Payslip {$salaryMonth} Paid",
+            'message' => 'Your salary of Rp '.number_format((float) $this->payrollDetail->final_salary, 0, '.', ',')." for {$salaryMonth} has been paid.",
             'route_name' => 'employee.payslips',
             'payroll_detail_id' => $this->payrollDetail->id,
             'payroll_id' => $this->payrollDetail->payroll_id,

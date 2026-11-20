@@ -144,7 +144,7 @@ class AttendanceRepository implements AttendanceRepositoryInterface
                 ->first();
 
             if ($existingAttendance) {
-                throw new \Exception('Employee sudah check in hari ini');
+                throw new \Exception('Employee has already checked in today');
             }
 
             $attendanceData = array_merge($data, [
@@ -170,7 +170,7 @@ class AttendanceRepository implements AttendanceRepositoryInterface
                 ->first();
 
             if (! $attendance) {
-                throw new \Exception('Tidak ada data check in hari ini');
+                throw new \Exception('No check-in record found for today');
             }
 
             $checkOutTime = Carbon::now();

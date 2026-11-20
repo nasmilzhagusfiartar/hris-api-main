@@ -37,7 +37,7 @@ class SettingController extends Controller implements HasMiddleware
                 200
             );
         } catch (\Throwable $e) {
-            return ResponseHelper::jsonResponse(false, 'Gagal memuat pengaturan sistem.', null, 500);
+            return ResponseHelper::jsonResponse(false, 'Failed to load system settings.', null, 500);
         }
     }
 
@@ -57,12 +57,12 @@ class SettingController extends Controller implements HasMiddleware
 
             return ResponseHelper::jsonResponse(
                 true,
-                'Pengaturan perusahaan berhasil disimpan.',
+                'Company settings saved successfully.',
                 new SettingResource($company),
                 200
             );
         } catch (\Throwable $e) {
-            return ResponseHelper::jsonResponse(false, 'Gagal menyimpan pengaturan perusahaan.', null, 500);
+            return ResponseHelper::jsonResponse(false, 'Failed to save company settings.', null, 500);
         }
     }
 
@@ -81,12 +81,12 @@ class SettingController extends Controller implements HasMiddleware
 
             return ResponseHelper::jsonResponse(
                 true,
-                'Preferensi notifikasi berhasil diperbarui.',
+                'Notification preferences updated successfully.',
                 new SettingResource($notifications),
                 200
             );
         } catch (\Throwable $e) {
-            return ResponseHelper::jsonResponse(false, 'Gagal memperbarui preferensi notifikasi.', null, 500);
+            return ResponseHelper::jsonResponse(false, 'Failed to update notification preferences.', null, 500);
         }
     }
 
@@ -104,11 +104,11 @@ class SettingController extends Controller implements HasMiddleware
                 $validated['new_password']
             );
 
-            return ResponseHelper::jsonResponse(true, 'Password berhasil diperbarui.', null, 200);
+            return ResponseHelper::jsonResponse(true, 'Password updated successfully.', null, 200);
         } catch (\InvalidArgumentException $e) {
             return ResponseHelper::jsonResponse(false, $e->getMessage(), null, 422);
         } catch (\Throwable $e) {
-            return ResponseHelper::jsonResponse(false, 'Gagal memperbarui password.', null, 500);
+            return ResponseHelper::jsonResponse(false, 'Failed to update password.', null, 500);
         }
     }
 }

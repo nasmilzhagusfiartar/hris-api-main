@@ -154,9 +154,9 @@ class AuditLogResource extends JsonResource
         if (stripos($cleanPath, '/login') !== false && $statusCode >= 400) {
             return [
                 'type' => 'failed_login',
-                'label' => 'Login Gagal',
-                'description' => "Percobaan login gagal (HTTP {$statusCode})",
-                'module' => 'Autentikasi',
+                'label' => 'Failed Login',
+                'description' => "Failed login attempt (HTTP {$statusCode})",
+                'module' => 'Authentication',
             ];
         }
 
@@ -165,8 +165,8 @@ class AuditLogResource extends JsonResource
             return [
                 'type' => 'login',
                 'label' => 'Login',
-                'description' => 'Login berhasil ke dalam sistem HIP HRIS',
-                'module' => 'Autentikasi',
+                'description' => 'Successfully logged in to HIP HRIS',
+                'module' => 'Authentication',
             ];
         }
 
@@ -175,16 +175,16 @@ class AuditLogResource extends JsonResource
             return [
                 'type' => 'logout',
                 'label' => 'Logout',
-                'description' => 'Logout / mengakhiri sesi pengguna',
-                'module' => 'Autentikasi',
+                'description' => 'Logged out / ended user session',
+                'module' => 'Authentication',
             ];
         }
 
         // 4. Delete actions
         if ($method === 'DELETE' || stripos($cleanPath, '/remove-member') !== false) {
             $desc = stripos($cleanPath, '/remove-member') !== false
-                ? 'Menghapus anggota dari tim'
-                : "Menghapus data pada modul {$module}";
+                ? 'Removed member from team'
+                : "Deleted data in {$module} module";
 
             return [
                 'type' => 'delete',
@@ -199,19 +199,19 @@ class AuditLogResource extends JsonResource
             in_array($method, ['PUT', 'PATCH'], true) ||
             ($method === 'POST' && preg_match('#/(approve|reject|mark-as-paid|assign-permissions|check-out)#i', $cleanPath))
         ) {
-            $desc = "Memperbarui data {$module}";
+            $desc = "Updated {$module} data";
             if (stripos($cleanPath, '/approve/') !== false) {
-                $desc = 'Menyetujui pengajuan cuti karyawan';
+                $desc = 'Approved employee leave request';
             } elseif (stripos($cleanPath, '/reject/') !== false) {
-                $desc = 'Menolak pengajuan cuti karyawan';
+                $desc = 'Rejected employee leave request';
             } elseif (stripos($cleanPath, '/mark-as-paid') !== false) {
-                $desc = 'Menandai periode payroll sebagai telah dibayar';
+                $desc = 'Marked payroll period as paid';
             } elseif (stripos($cleanPath, '/assign-permissions') !== false) {
-                $desc = 'Memperbarui hak akses (permission) role';
+                $desc = 'Updated role permissions';
             } elseif (stripos($cleanPath, '/check-out') !== false) {
-                $desc = 'Melakukan presensi pulang (Check-Out)';
+                $desc = 'Clocked out';
             } elseif (preg_match('#/api/v1/me$#i', $cleanPath)) {
-                $desc = 'Memperbarui profil akun pengguna';
+                $desc = 'Updated user account profile';
             }
 
             return [
@@ -224,21 +224,21 @@ class AuditLogResource extends JsonResource
 
         // 6. Create actions
         if ($method === 'POST') {
-            $desc = "Menambahkan data baru pada modul {$module}";
+            $desc = "Created new data in {$module} module";
             if (stripos($cleanPath, '/check-in') !== false) {
-                $desc = 'Melakukan presensi masuk (Check-In)';
+                $desc = 'Clocked in';
             } elseif (stripos($cleanPath, '/add-member') !== false) {
-                $desc = 'Menambahkan anggota ke dalam tim';
+                $desc = 'Added member to team';
             } elseif (stripos($cleanPath, '/payrolls/generate') !== false) {
-                $desc = 'Men-generate data payroll periode baru';
+                $desc = 'Generated new payroll period';
             } elseif (stripos($cleanPath, '/breach-checks/check-all') !== false) {
-                $desc = 'Menjalankan scan kebocoran email seluruh karyawan';
+                $desc = 'Triggered bulk email breach scan for all employees';
             } elseif (stripos($cleanPath, '/breach-checks') !== false) {
-                $desc = 'Mengecek kebocoran data email (Data Breach)';
+                $desc = 'Checked email data breach status';
             } elseif (stripos($cleanPath, '/brand-scans') !== false) {
-                $desc = 'Menjalankan pemindaian domain Brand Protection';
+                $desc = 'Triggered Brand Protection domain scan';
             } elseif (stripos($cleanPath, '/urlscan') !== false) {
-                $desc = 'Menjalankan analisis URLScan pada domain';
+                $desc = 'Triggered urlscan analysis on domain';
             }
 
             return [
@@ -250,13 +250,13 @@ class AuditLogResource extends JsonResource
         }
 
         // 7. Read / Access actions
-        $desc = "Mengakses data {$module}";
+        $desc = "Accessed {$module} data";
         if (stripos($cleanPath, '/export-excel') !== false) {
-            $desc = 'Mengunduh laporan Excel Payroll';
+            $desc = 'Downloaded Payroll Excel report';
         } elseif (stripos($cleanPath, '/search') !== false) {
-            $desc = 'Melakukan pencarian global di dashboard';
+            $desc = 'Performed global dashboard search';
         } elseif (stripos($cleanPath, '/me') !== false) {
-            $desc = 'Memverifikasi sesi pengguna aktif';
+            $desc = 'Verified active user session';
         }
 
         return [
@@ -270,26 +270,26 @@ class AuditLogResource extends JsonResource
     private static function detectModule(string $path): string
     {
         $map = [
-            '/employees' => 'Karyawan',
-            '/my-profile' => 'Profil Karyawan',
-            '/teams' => 'Tim & Departemen',
-            '/my-team' => 'Tim Saya',
-            '/projects' => 'Proyek',
-            '/project-tasks' => 'Tugas Proyek',
-            '/attendances' => 'Absensi',
-            '/my-attendance' => 'Absensi Saya',
-            '/leave-requests' => 'Cuti & Izin',
-            '/my-leave-requests' => 'Cuti Saya',
+            '/employees' => 'Employee',
+            '/my-profile' => 'Employee Profile',
+            '/teams' => 'Teams & Departments',
+            '/my-team' => 'My Team',
+            '/projects' => 'Project',
+            '/project-tasks' => 'Project Tasks',
+            '/attendances' => 'Attendance',
+            '/my-attendance' => 'My Attendance',
+            '/leave-requests' => 'Leave Requests',
+            '/my-leave-requests' => 'My Leave Requests',
             '/payrolls' => 'Payroll',
-            '/payroll-details' => 'Detail Payroll',
-            '/roles' => 'Role & RBAC',
-            '/permissions' => 'Permission',
+            '/payroll-details' => 'Payroll Details',
+            '/roles' => 'Roles & RBAC',
+            '/permissions' => 'Permissions',
             '/cti/breach-checks' => 'Email Breach (CTI)',
             '/cti/brand-scan' => 'Brand Protection (CTI)',
             '/dashboard' => 'Dashboard',
-            '/search' => 'Pencarian Global',
-            '/options' => 'Referensi Sistem',
-            '/me' => 'Sesi & Profil',
+            '/search' => 'Global Search',
+            '/options' => 'System Options',
+            '/me' => 'Session & Profile',
         ];
 
         foreach ($map as $prefix => $label) {
@@ -298,7 +298,7 @@ class AuditLogResource extends JsonResource
             }
         }
 
-        return 'Sistem';
+        return 'System';
     }
 }
 

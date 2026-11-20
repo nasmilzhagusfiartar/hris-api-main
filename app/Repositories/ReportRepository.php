@@ -491,8 +491,8 @@ class ReportRepository implements ReportRepositoryInterface
         foreach ($attQuery->get() as $att) {
             $activities[] = [
                 'id' => 'att-' . $att->id,
-                'actor' => $att->employee?->user?->name ?? 'Karyawan',
-                'action' => 'melakukan presensi (' . ucfirst((string) $att->status) . ') pada',
+                'actor' => $att->employee?->user?->name ?? 'Employee',
+                'action' => 'recorded attendance (' . ucfirst((string) $att->status) . ') on',
                 'target' => Carbon::parse($att->date)->format('d M Y'),
                 'created_at' => $att->created_at?->toIso8601String() ?? now()->toIso8601String(),
             ];
@@ -506,9 +506,9 @@ class ReportRepository implements ReportRepositoryInterface
         foreach ($leaveQuery->get() as $leave) {
             $activities[] = [
                 'id' => 'leave-' . $leave->id,
-                'actor' => $leave->employee?->user?->name ?? 'Karyawan',
-                'action' => 'mengajukan permohonan cuti selama',
-                'target' => $leave->total_days . ' hari',
+                'actor' => $leave->employee?->user?->name ?? 'Employee',
+                'action' => 'submitted a leave request for',
+                'target' => $leave->total_days . ' day(s)',
                 'created_at' => $leave->created_at?->toIso8601String() ?? now()->toIso8601String(),
             ];
         }

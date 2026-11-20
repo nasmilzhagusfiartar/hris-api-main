@@ -25,7 +25,7 @@ class AttendanceCheckOutRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'employee_id.required' => 'Akun Anda tidak terhubung dengan profil karyawan.',
+            'employee_id.required' => 'Your account is not linked to an employee profile.',
         ];
     }
 
@@ -35,7 +35,7 @@ class AttendanceCheckOutRequest extends FormRequest
             'employee_id' => 'Employee',
             'check_out_lat' => 'Latitude',
             'check_out_long' => 'Longitude',
-            'notes' => 'Catatan',
+            'notes' => 'Notes',
         ];
     }
 

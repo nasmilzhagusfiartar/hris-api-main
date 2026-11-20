@@ -34,7 +34,7 @@ class NotificationController extends Controller
                 200
             );
         } catch (\Throwable $e) {
-            return ResponseHelper::jsonResponse(false, 'Gagal memuat daftar notifikasi.', null, 500);
+            return ResponseHelper::jsonResponse(false, 'Failed to load notifications.', null, 500);
         }
     }
 
@@ -50,7 +50,7 @@ class NotificationController extends Controller
                 200
             );
         } catch (\Throwable $e) {
-            return ResponseHelper::jsonResponse(false, 'Gagal memuat jumlah notifikasi.', null, 500);
+            return ResponseHelper::jsonResponse(false, 'Failed to load unread notification count.', null, 500);
         }
     }
 
@@ -61,14 +61,14 @@ class NotificationController extends Controller
 
             return ResponseHelper::jsonResponse(
                 true,
-                'Notifikasi ditandai telah dibaca.',
+                'Notification marked as read.',
                 new NotificationResource($notification),
                 200
             );
         } catch (ModelNotFoundException $e) {
-            return ResponseHelper::jsonResponse(false, 'Notifikasi tidak ditemukan.', null, 404);
+            return ResponseHelper::jsonResponse(false, 'Notification not found.', null, 404);
         } catch (\Throwable $e) {
-            return ResponseHelper::jsonResponse(false, 'Gagal memperbarui status notifikasi.', null, 500);
+            return ResponseHelper::jsonResponse(false, 'Failed to update notification status.', null, 500);
         }
     }
 
@@ -79,12 +79,12 @@ class NotificationController extends Controller
 
             return ResponseHelper::jsonResponse(
                 true,
-                'Semua notifikasi ditandai telah dibaca.',
+                'All notifications marked as read.',
                 ['updated_count' => $updatedCount],
                 200
             );
         } catch (\Throwable $e) {
-            return ResponseHelper::jsonResponse(false, 'Gagal menandai semua notifikasi.', null, 500);
+            return ResponseHelper::jsonResponse(false, 'Failed to mark all notifications as read.', null, 500);
         }
     }
 }

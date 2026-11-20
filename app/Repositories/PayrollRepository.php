@@ -94,7 +94,7 @@ class PayrollRepository implements PayrollRepositoryInterface
             $existingPayroll = Payroll::where('salary_month', $month->format('Y-m-d'))->first();
 
             if ($existingPayroll) {
-                throw new \Exception('Payroll untuk bulan ' . $month->format('F Y') . ' sudah dibuat');
+                throw new \Exception('Payroll for ' . $month->format('F Y') . ' has already been generated');
             }
 
             $payroll = Payroll::create([
@@ -111,7 +111,7 @@ class PayrollRepository implements PayrollRepositoryInterface
                 ->toArray();
 
             if (empty($employeeIdsWithAttendance)) {
-                throw new \Exception('Tidak ada data absensi untuk bulan ini');
+                throw new \Exception('No attendance records found for this month');
             }
 
             $activeEmployees = EmployeeProfile::with(['jobInformation', 'user'])
@@ -125,7 +125,7 @@ class PayrollRepository implements PayrollRepositoryInterface
                 ->get();
 
             if ($activeEmployees->isEmpty()) {
-                throw new \Exception('Tidak ada karyawan aktif dengan data absensi');
+                throw new \Exception('No active employees with attendance records found');
             }
 
             $startOfMonth = $month->copy()->startOfMonth();
@@ -178,7 +178,7 @@ class PayrollRepository implements PayrollRepositoryInterface
                     'attended_days' => $attendedDays + $lateDays,
                     'sick_days' => $sickDays,
                     'absent_days' => $absentDays,
-                    'notes' => "Hari kerja: {$workingDays} | Hadir: {$attendedDays} | Terlambat: {$lateDays} | Sakit: {$sickDays} | Izin: {$permissionDays} | Alpha: {$absentDays} | Potongan: Rp " . number_format($deduction, 0, ',', '.'),
+                    'notes' => "Working days: {$workingDays} | Present: {$attendedDays} | Late: {$lateDays} | Sick: {$sickDays} | Permission: {$permissionDays} | Absent: {$absentDays} | Deduction: Rp " . number_format($deduction, 0, '.', ','),
                     'created_at' => now(),
                     'updated_at' => now(),
                 ];
@@ -206,7 +206,7 @@ class PayrollRepository implements PayrollRepositoryInterface
             $payrollDetail = PayrollDetail::findOrFail($id);
 
             if ($payrollDetail->payroll->status === 'paid') {
-                throw new \Exception('Tidak dapat mengubah payroll yang sudah dibayar');
+                throw new \Exception('Cannot update a payroll that has already been paid');
             }
 
             $updateData = [];
@@ -233,7 +233,7 @@ class PayrollRepository implements PayrollRepositoryInterface
             $payroll = Payroll::findOrFail($payrollId);
 
             if ($payroll->status === 'paid') {
-                throw new \Exception('Payroll sudah dibayar');
+                throw new \Exception('Payroll has already been paid');
             }
 
             $payroll->update([

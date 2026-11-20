@@ -48,7 +48,7 @@ class BreachCheckController extends Controller implements HasMiddleware
                 if (strcasecmp($targetEmail, trim((string) $user->email)) !== 0) {
                     return ResponseHelper::jsonResponse(
                         false,
-                        'Anda hanya memiliki akses untuk memeriksa kebocoran email akun Anda sendiri.',
+                        'You only have permission to check data breaches for your own email account.',
                         null,
                         403
                     );

@@ -89,7 +89,7 @@ class RoleRepository implements RoleRepositoryInterface
             $role = $this->getById($id);
 
             if (in_array($role->name, self::SYSTEM_ROLES)) {
-                throw new \Exception("Role sistem '{$role->name}' tidak boleh dihapus.");
+                throw new \Exception("System role '{$role->name}' cannot be deleted.");
             }
 
             return (bool) $role->delete();

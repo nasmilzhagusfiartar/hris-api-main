@@ -35,7 +35,7 @@ class ReportController extends Controller implements HasMiddleware
 
             return ResponseHelper::jsonResponse(true, 'Report Overview Retrieved Successfully', $data, 200);
         } catch (\Throwable $e) {
-            return ResponseHelper::jsonResponse(false, 'Gagal memuat ringkasan laporan.', null, 500);
+            return ResponseHelper::jsonResponse(false, 'Failed to load report overview.', null, 500);
         }
     }
 
@@ -55,7 +55,7 @@ class ReportController extends Controller implements HasMiddleware
 
             return ResponseHelper::jsonResponse(true, 'Attendance Report Retrieved Successfully', $data, 200);
         } catch (\Throwable $e) {
-            return ResponseHelper::jsonResponse(false, 'Gagal memuat laporan absensi.', null, 500);
+            return ResponseHelper::jsonResponse(false, 'Failed to load attendance report.', null, 500);
         }
     }
 
@@ -71,7 +71,7 @@ class ReportController extends Controller implements HasMiddleware
         ]);
 
         $report = $this->reportRepository->getAttendanceReport($validated, Auth::user());
-        $filename = 'laporan-absensi-' . now()->format('Y-m-d') . '.xlsx';
+        $filename = 'attendance-report-' . now()->format('Y-m-d') . '.xlsx';
 
         return Excel::download(new AttendanceReportExport($report['employees_summary'] ?? []), $filename);
     }
@@ -91,7 +91,7 @@ class ReportController extends Controller implements HasMiddleware
 
             return ResponseHelper::jsonResponse(true, 'Payroll Report Retrieved Successfully', $data, 200);
         } catch (\Throwable $e) {
-            return ResponseHelper::jsonResponse(false, 'Gagal memuat laporan payroll.', null, 500);
+            return ResponseHelper::jsonResponse(false, 'Failed to load payroll report.', null, 500);
         }
     }
 
@@ -108,7 +108,7 @@ class ReportController extends Controller implements HasMiddleware
 
             return ResponseHelper::jsonResponse(true, 'Employee Report Retrieved Successfully', $data, 200);
         } catch (\Throwable $e) {
-            return ResponseHelper::jsonResponse(false, 'Gagal memuat laporan karyawan.', null, 500);
+            return ResponseHelper::jsonResponse(false, 'Failed to load employee report.', null, 500);
         }
     }
 
@@ -119,7 +119,7 @@ class ReportController extends Controller implements HasMiddleware
 
             return ResponseHelper::jsonResponse(true, 'Activity Log Retrieved Successfully', $data, 200);
         } catch (\Throwable $e) {
-            return ResponseHelper::jsonResponse(false, 'Gagal memuat riwayat aktivitas.', null, 500);
+            return ResponseHelper::jsonResponse(false, 'Failed to load activity log.', null, 500);
         }
     }
 }

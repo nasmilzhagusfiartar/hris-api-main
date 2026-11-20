@@ -34,11 +34,11 @@ class NotificationResource extends JsonResource
     private function resolveDefaultTitle(string $type): string
     {
         return match ($type) {
-            'LeaveRequestCreated', 'leave_request_created' => 'Pengajuan Cuti Diproses',
-            'LeaveRequestApproved', 'leave_request_approved' => 'Permohonan Cuti Disetujui',
-            'LeaveRequestRejected', 'leave_request_rejected' => 'Permohonan Cuti Ditolak',
-            'PayrollPaid', 'payroll_paid' => 'Slip Gaji Telah Dibayar',
-            default => 'Notifikasi Sistem',
+            'LeaveRequestCreated', 'leave_request_created' => 'Leave Request Submitted',
+            'LeaveRequestApproved', 'leave_request_approved' => 'Leave Request Approved',
+            'LeaveRequestRejected', 'leave_request_rejected' => 'Leave Request Rejected',
+            'PayrollPaid', 'payroll_paid' => 'Payslip Paid',
+            default => 'System Notification',
         };
     }
 
@@ -48,16 +48,16 @@ class NotificationResource extends JsonResource
 
         return match ($type) {
             'LeaveRequestCreated', 'leave_request_created' => $days
-                ? "Pengajuan cuti selama {$days} hari sedang menunggu persetujuan."
-                : 'Pengajuan cuti Anda sedang menunggu persetujuan.',
+                ? "Your leave request for {$days} day(s) is pending approval."
+                : 'Your leave request is pending approval.',
             'LeaveRequestApproved', 'leave_request_approved' => $days
-                ? "Permohonan cuti selama {$days} hari telah disetujui."
-                : 'Permohonan cuti Anda telah disetujui.',
+                ? "Your leave request for {$days} day(s) has been approved."
+                : 'Your leave request has been approved.',
             'LeaveRequestRejected', 'leave_request_rejected' => $days
-                ? "Permohonan cuti selama {$days} hari tidak dapat disetujui."
-                : 'Permohonan cuti Anda telah ditolak.',
-            'PayrollPaid', 'payroll_paid' => 'Pembayaran gaji Anda telah selesai diproses.',
-            default => 'Anda memiliki pembaruan baru di HIP HRIS.',
+                ? "Your leave request for {$days} day(s) could not be approved."
+                : 'Your leave request has been rejected.',
+            'PayrollPaid', 'payroll_paid' => 'Your salary payment has been processed.',
+            default => 'You have a new update in HIP HRIS.',
         };
     }
 

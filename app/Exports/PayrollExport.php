@@ -53,22 +53,22 @@ class PayrollExport implements FromCollection, ShouldAutoSize, WithEvents, WithH
     {
         return [
             'No',
-            'Nama Karyawan',
-            'ID Karyawan',
-            'Jabatan',
-            'Departemen',
+            'Employee Name',
+            'Employee ID',
+            'Job Title',
+            'Department',
             'Bank',
-            'No. Rekening',
-            'Nama Pemegang Rekening',
-            'Hari Kerja',
-            'Hadir',
-            'Sakit',
-            'Alpha',
-            'Gaji Pokok',
-            'Potongan',
-            'Gaji Bersih',
+            'Account Number',
+            'Account Holder Name',
+            'Working Days',
+            'Present',
+            'Sick',
+            'Absent',
+            'Base Salary',
+            'Deductions',
+            'Net Salary',
             'Status',
-            'Catatan',
+            'Notes',
         ];
     }
 
@@ -95,7 +95,7 @@ class PayrollExport implements FromCollection, ShouldAutoSize, WithEvents, WithH
             $detail->original_salary ?? 0,
             ($detail->original_salary - $detail->final_salary) ?? 0,
             $detail->final_salary ?? 0,
-            $this->payroll->status === 'paid' ? 'Sudah Dibayar' : 'Menunggu',
+            $this->payroll->status === 'paid' ? 'Paid' : 'Pending',
             $detail->notes ?? '',
         ];
     }
@@ -178,17 +178,16 @@ class PayrollExport implements FromCollection, ShouldAutoSize, WithEvents, WithH
                 $totalAmount = $this->payroll->payrollDetails()->sum('final_salary');
                 $avgSalary = $totalEmployees > 0 ? $totalAmount / $totalEmployees : 0;
 
-                $sheet->setCellValue('A1', 'LAPORAN GAJI KARYAWAN');
-                $sheet->setCellValue('A2', "Periode: {$month}");
-                $sheet->setCellValue('A3', "Total Karyawan: {$totalEmployees}");
-                $sheet->setCellValue('A3', "Total Karyawan: {$totalEmployees}");
-                $sheet->setCellValue('D3', 'Total Gaji: Rp '.number_format($totalAmount, 0, ',', '.'));
-                $sheet->setCellValue('A4', 'Rata-rata Gaji: Rp '.number_format($avgSalary, 0, ',', '.'));
-                $sheet->setCellValue('D4', 'Status: '.($this->payroll->status === 'paid' ? 'Sudah Dibayar' : 'Menunggu'));
+                $sheet->setCellValue('A1', 'EMPLOYEE PAYROLL REPORT');
+                $sheet->setCellValue('A2', "Period: {$month}");
+                $sheet->setCellValue('A3', "Total Employees: {$totalEmployees}");
+                $sheet->setCellValue('D3', 'Total Payroll: Rp '.number_format($totalAmount, 0, '.', ','));
+                $sheet->setCellValue('A4', 'Average Salary: Rp '.number_format($avgSalary, 0, '.', ','));
+                $sheet->setCellValue('D4', 'Status: '.($this->payroll->status === 'paid' ? 'Paid' : 'Pending'));
 
                 if ($this->payroll->payment_date) {
                     $paymentDate = \Carbon\Carbon::parse($this->payroll->payment_date)->format('d F Y');
-                    $sheet->setCellValue('A5', "Tanggal Pembayaran: {$paymentDate}");
+                    $sheet->setCellValue('A5', "Payment Date: {$paymentDate}");
                 }
 
                 // Style the summary section
