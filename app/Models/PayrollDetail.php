@@ -15,9 +15,14 @@ class PayrollDetail extends Model
         'employee_id',
         'original_salary',
         'final_salary',
+        'working_days',
         'attended_days',
+        'late_days',
         'sick_days',
+        'permission_days',
+        'leave_days',
         'absent_days',
+        'deduction_amount',
         'notes',
     ];
 
@@ -26,6 +31,7 @@ class PayrollDetail extends Model
         return [
             'original_salary' => 'decimal:2',
             'final_salary' => 'decimal:2',
+            'deduction_amount' => 'decimal:2',
         ];
     }
 

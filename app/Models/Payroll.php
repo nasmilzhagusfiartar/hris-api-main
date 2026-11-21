@@ -12,6 +12,9 @@ class Payroll extends Model
 
     protected $fillable = [
         'salary_month',
+        'period_start',
+        'period_end',
+        'pay_date',
         'payment_date',
         'status',
     ];
@@ -20,6 +23,9 @@ class Payroll extends Model
     {
         return [
             'salary_month' => 'date',
+            'period_start' => 'date',
+            'period_end' => 'date',
+            'pay_date' => 'date',
             'payment_date' => 'date',
         ];
     }

@@ -18,7 +18,10 @@ class PayrollResource extends JsonResource
             'id' => $this->id,
             'salary_month' => $this->salary_month,
             'period' => $this->salary_month, // Alias for compatibility
-            'payment_date' => $this->payment_date,
+            'period_start' => $this->period_start?->format('Y-m-d'),
+            'period_end' => $this->period_end?->format('Y-m-d'),
+            'pay_date' => $this->pay_date?->format('Y-m-d'),
+            'payment_date' => $this->payment_date?->format('Y-m-d'),
             'status' => $this->status,
 
             // Only include full details if relationship is loaded

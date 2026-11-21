@@ -88,7 +88,7 @@ class PayrollExport implements FromCollection, ShouldAutoSize, WithEvents, WithH
             $detail->employee->bankInformation->bank_name ?? 'N/A',
             $detail->employee->bankInformation->account_number ?? 'N/A',
             $detail->employee->bankInformation->account_holder_name ?? 'N/A',
-            22, // Total working days
+            $detail->working_days ?: 22,
             $detail->attended_days ?? 0,
             $detail->sick_days ?? 0,
             $detail->absent_days ?? 0,
@@ -174,20 +174,24 @@ class PayrollExport implements FromCollection, ShouldAutoSize, WithEvents, WithH
                 $sheet->insertNewRowBefore(1, 5);
 
                 $month = \Carbon\Carbon::parse($this->payroll->salary_month)->format('F Y');
+                $periodLabel = ($this->payroll->period_start && $this->payroll->period_end)
+                    ? \Carbon\Carbon::parse($this->payroll->period_start)->format('d M Y').' - '.\Carbon\Carbon::parse($this->payroll->period_end)->format('d M Y')
+                    : $month;
                 $totalEmployees = $this->payroll->payrollDetails()->count();
                 $totalAmount = $this->payroll->payrollDetails()->sum('final_salary');
                 $avgSalary = $totalEmployees > 0 ? $totalAmount / $totalEmployees : 0;
 
                 $sheet->setCellValue('A1', 'EMPLOYEE PAYROLL REPORT');
-                $sheet->setCellValue('A2', "Period: {$month}");
+                $sheet->setCellValue('A2', "Period: {$periodLabel}");
                 $sheet->setCellValue('A3', "Total Employees: {$totalEmployees}");
                 $sheet->setCellValue('D3', 'Total Payroll: Rp '.number_format($totalAmount, 0, '.', ','));
                 $sheet->setCellValue('A4', 'Average Salary: Rp '.number_format($avgSalary, 0, '.', ','));
                 $sheet->setCellValue('D4', 'Status: '.($this->payroll->status === 'paid' ? 'Paid' : 'Pending'));
 
-                if ($this->payroll->payment_date) {
-                    $paymentDate = \Carbon\Carbon::parse($this->payroll->payment_date)->format('d F Y');
-                    $sheet->setCellValue('A5', "Payment Date: {$paymentDate}");
+                $displayPayDate = $this->payroll->payment_date ?? $this->payroll->pay_date;
+                if ($displayPayDate) {
+                    $paymentDate = \Carbon\Carbon::parse($displayPayDate)->format('d F Y');
+                    $sheet->setCellValue('A5', "Pay Date: {$paymentDate}");
                 }
 
                 // Style the summary section

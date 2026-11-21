@@ -50,6 +50,11 @@ class SettingController extends Controller implements HasMiddleware
             'address' => 'nullable|string|max:500',
             'timezone' => 'required|string|in:Asia/Jakarta,Asia/Makassar,Asia/Jayapura',
             'work_days_per_week' => 'required|integer|min:1|max:7',
+            'payroll_cutoff_day' => 'nullable|integer|min:1|max:28',
+            'payroll_pay_day' => 'nullable|integer|min:1|max:31',
+            'work_days_by_location' => 'nullable|array',
+            'work_days_by_location.*' => 'array|min:1',
+            'work_days_by_location.*.*' => 'integer|min:1|max:7',
         ]);
 
         try {

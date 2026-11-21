@@ -20,6 +20,14 @@ class SettingRepository implements SettingRepositoryInterface
             'address' => 'Jakarta, Indonesia',
             'timezone' => 'Asia/Jakarta',
             'work_days_per_week' => 5,
+            'payroll_cutoff_day' => 15,
+            'payroll_pay_day' => 28,
+            'work_days_by_location' => [
+                'office' => [1, 2, 3, 4, 5],
+                'hybrid' => [1, 2, 3, 4, 5],
+                'remote' => [1, 2, 3, 4, 5],
+                'store' => [1, 2, 3, 4, 5, 6],
+            ],
         ];
     }
 
@@ -42,14 +50,22 @@ class SettingRepository implements SettingRepositoryInterface
         ];
     }
 
-    private function getCompanySettings(): array
+    public function getCompanySettings(): array
     {
         $defaults = $this->defaultCompanySettings();
 
         if (Storage::disk('local')->exists(self::COMPANY_SETTINGS_PATH)) {
             $decoded = json_decode((string) Storage::disk('local')->get(self::COMPANY_SETTINGS_PATH), true);
             if (is_array($decoded)) {
-                return array_merge($defaults, $decoded);
+                $merged = array_merge($defaults, $decoded);
+                if (isset($decoded['work_days_by_location']) && is_array($decoded['work_days_by_location'])) {
+                    $merged['work_days_by_location'] = array_merge(
+                        $defaults['work_days_by_location'],
+                        $decoded['work_days_by_location']
+                    );
+                }
+
+                return $merged;
             }
         }
 
@@ -81,7 +97,26 @@ class SettingRepository implements SettingRepositoryInterface
             'address' => $data['address'] ?? $current['address'],
             'timezone' => $data['timezone'] ?? $current['timezone'],
             'work_days_per_week' => isset($data['work_days_per_week']) ? (int) $data['work_days_per_week'] : $current['work_days_per_week'],
+            'payroll_cutoff_day' => isset($data['payroll_cutoff_day']) ? (int) $data['payroll_cutoff_day'] : $current['payroll_cutoff_day'],
+            'payroll_pay_day' => isset($data['payroll_pay_day']) ? (int) $data['payroll_pay_day'] : $current['payroll_pay_day'],
         ]);
+
+        if (isset($data['work_days_by_location']) && is_array($data['work_days_by_location'])) {
+            $locations = $current['work_days_by_location'];
+            foreach ($data['work_days_by_location'] as $loc => $days) {
+                if (is_array($days)) {
+                    $cleanDays = array_values(array_unique(array_filter(
+                        array_map('intval', $days),
+                        fn (int $d) => $d >= 1 && $d <= 7
+                    )));
+                    sort($cleanDays);
+                    if (! empty($cleanDays)) {
+                        $locations[$loc] = $cleanDays;
+                    }
+                }
+            }
+            $updated['work_days_by_location'] = $locations;
+        }
 
         Storage::disk('local')->put(self::COMPANY_SETTINGS_PATH, json_encode($updated, JSON_PRETTY_PRINT));
 
