@@ -18,6 +18,7 @@ class JobInformationDto
         public readonly ?string $vendor_name,
         public readonly string $work_location,
         public readonly string $start_date,
+        public readonly ?string $end_date,
         public readonly float $monthly_salary,
         public readonly string $skill_level,
     ) {}
@@ -36,6 +37,7 @@ class JobInformationDto
             'vendor_name' => $this->employment_type === 'vendor' ? $this->vendor_name : null,
             'work_location' => $this->work_location,
             'start_date' => $this->start_date,
+            'end_date' => $this->end_date,
             'monthly_salary' => $this->monthly_salary,
             'skill_level' => $this->skill_level,
         ];
@@ -55,6 +57,7 @@ class JobInformationDto
             vendor_name: isset($data['vendor_name']) && trim((string) $data['vendor_name']) !== '' ? trim((string) $data['vendor_name']) : null,
             work_location: $data['work_location'],
             start_date: $data['start_date'],
+            end_date: isset($data['end_date']) && $data['end_date'] !== '' ? (string) $data['end_date'] : null,
             monthly_salary: (float) $data['monthly_salary'],
             skill_level: $data['skill_level'],
         );
@@ -63,6 +66,13 @@ class JobInformationDto
     public static function fromArrayForUpdate(array $data, JobInformation $existingJob): self
     {
         $employmentType = $data['employment_type'] ?? $existingJob->employment_type ?? 'full_time';
+        $status = $data['status'] ?? $existingJob->status ?? 'active';
+        $endDate = array_key_exists('end_date', $data)
+            ? ($data['end_date'] !== '' && $data['end_date'] !== null ? (string) $data['end_date'] : null)
+            : ($existingJob->end_date ? $existingJob->end_date->format('Y-m-d') : null);
+        if (! \App\Enums\JobStatus::isInactiveStatus($status)) {
+            $endDate = null;
+        }
 
         return new self(
             employee_id: (string) ($data['employee_id'] ?? $existingJob->employee_id),
@@ -77,13 +87,14 @@ class JobInformationDto
                 ? ($data['store_id'] !== '' && $data['store_id'] !== null ? (int) $data['store_id'] : null)
                 : $existingJob->store_id,
             years_experience: (int) ($data['years_experience'] ?? $existingJob->years_experience ?? 0),
-            status: $data['status'] ?? $existingJob->status ?? 'active',
+            status: $status,
             employment_type: $employmentType,
             vendor_name: array_key_exists('vendor_name', $data)
                 ? (trim((string) $data['vendor_name']) !== '' ? trim((string) $data['vendor_name']) : null)
                 : $existingJob->vendor_name,
             work_location: $data['work_location'] ?? $existingJob->work_location ?? 'office',
             start_date: $data['start_date'] ?? ($existingJob->start_date ? $existingJob->start_date->format('Y-m-d') : now()->format('Y-m-d')),
+            end_date: $endDate,
             monthly_salary: isset($data['monthly_salary']) ? (float) $data['monthly_salary'] : ($existingJob->monthly_salary ?? 0.0),
             skill_level: $data['skill_level'] ?? $existingJob->skill_level ?? 'beginner',
         );

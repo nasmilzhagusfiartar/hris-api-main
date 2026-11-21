@@ -35,6 +35,7 @@ class JobInformationResource extends JsonResource
             'vendor_name' => $this->vendor_name,
             'work_location' => $this->work_location,
             'start_date' => $this->start_date,
+            'end_date' => $this->end_date?->format('Y-m-d'),
             'monthly_salary' => $this->monthly_salary,
             'skill_level' => $this->skill_level,
         ];

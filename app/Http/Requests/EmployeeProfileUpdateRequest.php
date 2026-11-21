@@ -61,6 +61,7 @@ class EmployeeProfileUpdateRequest extends FormRequest
             'vendor_name' => ['required_if:employment_type,vendor', 'nullable', 'string', 'max:255'],
             'work_location' => ['sometimes', 'required', 'string', 'in:'.implode(',', array_column(WorkLocation::cases(), 'value'))],
             'start_date' => ['sometimes', 'required', 'date'],
+            'end_date' => ['required_if:status,resigned', 'nullable', 'date'],
             'monthly_salary' => ['sometimes', 'required', 'numeric', 'min:0'],
             'skill_level' => ['sometimes', 'required', 'string', 'in:'.implode(',', array_column(SkillLevel::cases(), 'value'))],
 

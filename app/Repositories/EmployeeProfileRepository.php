@@ -405,6 +405,7 @@ class EmployeeProfileRepository implements EmployeeProfileRepositoryInterface
             'vendor_name',
             'work_location',
             'start_date',
+            'end_date',
             'monthly_salary',
             'skill_level',
         ];

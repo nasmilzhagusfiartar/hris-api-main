@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use App\Services\MfaAuditLogger;
+use App\Services\UserAccountLifecycleService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -24,26 +24,14 @@ class EmployeeProfile extends Model
 
         static::deleted(function (EmployeeProfile $profile): void {
             $user = $profile->user()->withTrashed()->first();
-            if (! $user || $user->hasRole('super-admin')) {
+            if (! $user) {
                 return;
             }
 
-            if ($user->is_active) {
-                $user->forceFill(['is_active' => false])->save();
-            }
-            $user->tokens()->delete();
-
-            app(MfaAuditLogger::class)->log(
-                'account_deactivated',
-                auth()->user(),
-                request(),
-                [
-                    'target_user_id' => $user->id,
-                    'target_email' => $user->email,
-                    'employee_profile_id' => $profile->id,
-                    'deactivated_at' => now()->toIso8601String(),
-                ],
-                200
+            app(UserAccountLifecycleService::class)->deactivate(
+                $user,
+                'employee deleted',
+                ['employee_profile_id' => $profile->id]
             );
         });
 
@@ -53,24 +41,10 @@ class EmployeeProfile extends Model
                 return;
             }
 
-            if ($user->trashed()) {
-                $user->restore();
-            }
-            if (! $user->is_active) {
-                $user->forceFill(['is_active' => true])->save();
-            }
-
-            app(MfaAuditLogger::class)->log(
-                'account_reactivated',
-                auth()->user(),
-                request(),
-                [
-                    'target_user_id' => $user->id,
-                    'target_email' => $user->email,
-                    'employee_profile_id' => $profile->id,
-                    'reactivated_at' => now()->toIso8601String(),
-                ],
-                200
+            app(UserAccountLifecycleService::class)->reactivate(
+                $user,
+                'employee restored',
+                ['employee_profile_id' => $profile->id]
             );
         });
     }

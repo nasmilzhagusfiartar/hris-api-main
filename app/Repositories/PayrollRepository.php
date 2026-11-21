@@ -164,16 +164,26 @@ class PayrollRepository implements PayrollRepositoryInterface
                 'status' => 'processing',
             ]);
 
+            $inactiveStatuses = \App\Enums\JobStatus::inactiveValues();
+
             $activeEmployees = EmployeeProfile::with(['jobInformation', 'user'])
                 ->whereDoesntHave('user.roles', function ($query) {
                     $query->where('name', 'security');
                 })
-                ->whereHas('jobInformation', function ($query) use ($periodEnd) {
-                    $query->where('status', 'active')
-                        ->where('employment_type', '!=', 'vendor')
+                ->whereHas('jobInformation', function ($query) use ($periodStart, $periodEnd, $inactiveStatuses) {
+                    $query->where('employment_type', '!=', 'vendor')
                         ->where(function ($q) use ($periodEnd) {
                             $q->whereNull('start_date')
                                 ->orWhereDate('start_date', '<=', $periodEnd->format('Y-m-d'));
+                        })
+                        ->where(function ($q) use ($periodStart, $inactiveStatuses) {
+                            $q->whereNotIn('status', $inactiveStatuses)
+                                ->orWhere(function ($sub) use ($periodStart, $inactiveStatuses) {
+                                    // Inactive/resigned employees still get prorated pay if their end_date falls inside or after period_start
+                                    $sub->whereIn('status', $inactiveStatuses)
+                                        ->whereNotNull('end_date')
+                                        ->whereDate('end_date', '>=', $periodStart->format('Y-m-d'));
+                                });
                         });
                 })
                 ->get();
@@ -250,6 +260,7 @@ class PayrollRepository implements PayrollRepositoryInterface
                     : $periodStart->copy()->startOfDay();
 
                 $workingDays = 0;
+                $fullPeriodWorkingDays = 0;
                 $presentDays = 0;
                 $lateDays = 0;
                 $sickDays = 0;
@@ -262,43 +273,59 @@ class PayrollRepository implements PayrollRepositoryInterface
 
                 $cursor = $effectiveStart->copy();
                 $periodEndDay = $periodEnd->copy()->startOfDay();
+                $employeeEndDay = $jobInfo->end_date
+                    ? Carbon::parse($jobInfo->end_date)->startOfDay()
+                    : null;
+                $effectiveEndDay = ($employeeEndDay && $employeeEndDay->lt($periodEndDay))
+                    ? $employeeEndDay
+                    : $periodEndDay;
 
                 while ($cursor->lte($periodEndDay)) {
                     if (in_array($cursor->dayOfWeekIso, $allowedDays, true)) {
-                        $workingDays++;
-                        $dateKey = $cursor->format('Y-m-d');
-                        $attStatus = $empAttendance[$dateKey] ?? null;
+                        $fullPeriodWorkingDays++;
 
-                        if ($attStatus === 'present') {
-                            $presentDays++;
-                        } elseif ($attStatus === 'late') {
-                            // Late is recorded, NOT deducted
-                            $lateDays++;
-                        } elseif ($attStatus === 'sick') {
-                            // Sick is NOT deducted
-                            $sickDays++;
-                        } elseif ($attStatus === 'permission') {
-                            // Permission is NOT deducted
-                            $permissionDays++;
-                        } elseif (isset($empLeaves[$dateKey])) {
-                            // Approved leave is NOT deducted
-                            $leaveDays++;
-                        } elseif ($attStatus === 'absent') {
-                            $absentDays++;
-                        } elseif ($cursor->lte($evaluationEnd)) {
-                            // Past/current working day with no attendance and no approved leave -> absent
-                            $absentDays++;
+                        if ($cursor->lte($effectiveEndDay)) {
+                            $workingDays++;
+                            $dateKey = $cursor->format('Y-m-d');
+                            $attStatus = $empAttendance[$dateKey] ?? null;
+
+                            if ($attStatus === 'present') {
+                                $presentDays++;
+                            } elseif ($attStatus === 'late') {
+                                // Late is recorded, NOT deducted
+                                $lateDays++;
+                            } elseif ($attStatus === 'sick') {
+                                // Sick is NOT deducted
+                                $sickDays++;
+                            } elseif ($attStatus === 'permission') {
+                                // Permission is NOT deducted
+                                $permissionDays++;
+                            } elseif (isset($empLeaves[$dateKey])) {
+                                // Approved leave is NOT deducted
+                                $leaveDays++;
+                            } elseif ($attStatus === 'absent') {
+                                $absentDays++;
+                            } elseif ($cursor->lte($evaluationEnd)) {
+                                // Past/current working day with no attendance and no approved leave -> absent
+                                $absentDays++;
+                            }
                         }
                     }
                     $cursor->addDay();
                 }
 
-                // Deduction formula: round((basic_salary / working_days) * absent_days), min 0
-                $deduction = $workingDays > 0
-                    ? max(0.0, (float) round(($originalSalary / $workingDays) * $absentDays))
+                // Prorated base if employee ended mid-period (end_date < period_end)
+                $proratedBase = $fullPeriodWorkingDays > 0
+                    ? ($originalSalary * ($workingDays / $fullPeriodWorkingDays))
                     : 0.0;
 
-                $finalSalary = max(0.0, round($originalSalary - $deduction));
+                // Deduction formula: round((basic_salary / full_period_working_days) * absent_days), min 0
+                $absenceDeduction = $fullPeriodWorkingDays > 0
+                    ? max(0.0, ($originalSalary / $fullPeriodWorkingDays) * $absentDays)
+                    : 0.0;
+
+                $finalSalary = max(0.0, round($proratedBase - $absenceDeduction));
+                $deduction = max(0.0, round($originalSalary - $finalSalary));
                 $attendedDays = $presentDays + $lateDays;
 
                 $payrollDetails[] = [

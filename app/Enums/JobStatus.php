@@ -17,6 +17,25 @@ enum JobStatus: string
         };
     }
 
+    /**
+     * Statuses that deactivate the employee's user account.
+     *
+     * @return list<string>
+     */
+    public static function inactiveValues(): array
+    {
+        return [self::RESIGNED->value, 'inactive', 'terminated'];
+    }
+
+    public static function isInactiveStatus(?string $status): bool
+    {
+        if ($status === null) {
+            return false;
+        }
+
+        return in_array(strtolower($status), self::inactiveValues(), true);
+    }
+
     public function toArray(): array
     {
         return [
