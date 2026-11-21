@@ -105,6 +105,30 @@ class RetailStoresAndVendorSalesTest extends TestCase
 
         $storeId = $createRes->json('data.id');
 
+        // Updating store (including string boolean 'false' / empty code normalization) succeeds
+        $this->putJson("/api/v1/stores/{$storeId}", [
+            'code' => 'TC-GI-01',
+            'name' => 'Toys City Grand Indonesia Mall',
+            'brand' => 'Toys City',
+            'city' => 'Jakarta Pusat',
+            'address' => '',
+            'is_active' => 'false',
+        ])->assertStatus(200)
+            ->assertJsonPath('data.name', 'Toys City Grand Indonesia Mall')
+            ->assertJsonPath('data.is_active', false);
+
+        // Creating store with string boolean 'true' and empty string code succeeds
+        $mpStyleRes = $this->post('/api/v1/stores', [
+            'code' => '',
+            'name' => 'Toys City Senayan',
+            'brand' => 'Toys City',
+            'city' => 'Jakarta',
+            'address' => '',
+            'is_active' => 'true',
+        ], ['Accept' => 'application/json'])->assertStatus(201);
+        $this->assertTrue((bool) $mpStyleRes->json('data.is_active'));
+        $this->deleteJson('/api/v1/stores/'.$mpStyleRes->json('data.id'))->assertStatus(200);
+
         // Assign an active employee to the store
         $this->createUserWithProfile('employee', 'vendor', $storeId, 'Mattel Indonesia');
 
