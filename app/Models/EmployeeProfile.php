@@ -2,14 +2,78 @@
 
 namespace App\Models;
 
+use App\Services\MfaAuditLogger;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Laravel\Scout\Searchable;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class EmployeeProfile extends Model
 {
     use HasFactory, Searchable, SoftDeletes;
+
+    protected static function booted(): void
+    {
+        static::deleting(function (EmployeeProfile $profile): void {
+            $user = $profile->user()->withTrashed()->first();
+            if ($user && $user->hasRole('super-admin')) {
+                throw new HttpException(403, 'Super Admin user cannot be deleted.');
+            }
+        });
+
+        static::deleted(function (EmployeeProfile $profile): void {
+            $user = $profile->user()->withTrashed()->first();
+            if (! $user || $user->hasRole('super-admin')) {
+                return;
+            }
+
+            if ($user->is_active) {
+                $user->forceFill(['is_active' => false])->save();
+            }
+            $user->tokens()->delete();
+
+            app(MfaAuditLogger::class)->log(
+                'account_deactivated',
+                auth()->user(),
+                request(),
+                [
+                    'target_user_id' => $user->id,
+                    'target_email' => $user->email,
+                    'employee_profile_id' => $profile->id,
+                    'deactivated_at' => now()->toIso8601String(),
+                ],
+                200
+            );
+        });
+
+        static::restored(function (EmployeeProfile $profile): void {
+            $user = $profile->user()->withTrashed()->first();
+            if (! $user) {
+                return;
+            }
+
+            if ($user->trashed()) {
+                $user->restore();
+            }
+            if (! $user->is_active) {
+                $user->forceFill(['is_active' => true])->save();
+            }
+
+            app(MfaAuditLogger::class)->log(
+                'account_reactivated',
+                auth()->user(),
+                request(),
+                [
+                    'target_user_id' => $user->id,
+                    'target_email' => $user->email,
+                    'employee_profile_id' => $profile->id,
+                    'reactivated_at' => now()->toIso8601String(),
+                ],
+                200
+            );
+        });
+    }
 
     protected $fillable = [
         'user_id',

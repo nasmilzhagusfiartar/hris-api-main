@@ -23,7 +23,7 @@ use App\Http\Controllers\StoreController;
 use App\Http\Controllers\TeamController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['auth:sanctum', 'mfa.enrolled'])->get('search', [SearchController::class, 'search']);
+Route::middleware(['auth:sanctum', 'active.user', 'mfa.enrolled'])->get('search', [SearchController::class, 'search']);
 
 Route::prefix('v1')
     ->group(function () {
@@ -39,7 +39,7 @@ Route::prefix('v1')
         Route::post('login', [AuthController::class, 'login'])->middleware('throttle:5,1');
         Route::post('login/mfa-verify', [AuthController::class, 'mfaVerify'])->middleware('throttle:5,1');
 
-        Route::middleware('auth:sanctum')->group(function () {
+        Route::middleware(['auth:sanctum', 'active.user'])->group(function () {
             // Allowed even when MFA enrollment is pending for enforced roles
             Route::get('me', [AuthController::class, 'me']);
             Route::put('me', [AuthController::class, 'updateProfile']);

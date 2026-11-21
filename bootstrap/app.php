@@ -22,6 +22,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'project.member' => \App\Http\Middleware\EnsureProjectMembership::class,
             'mfa.enrolled' => \App\Http\Middleware\EnsureMfaEnrolled::class,
+            'active.user' => \App\Http\Middleware\EnsureUserIsActive::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

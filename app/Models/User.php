@@ -28,6 +28,10 @@ class User extends Authenticatable
         });
     }
 
+    protected $attributes = [
+        'is_active' => true,
+    ];
+
     /**
      * The attributes that are mass assignable.
      *
@@ -38,6 +42,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'is_active',
     ];
 
     /**
@@ -63,6 +68,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'is_active' => 'boolean',
             'mfa_secret' => 'encrypted',
             'mfa_enabled_at' => 'datetime',
             'mfa_recovery_codes' => 'encrypted:array',

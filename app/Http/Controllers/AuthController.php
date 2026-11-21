@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Exceptions\MfaVerificationException;
 use App\Helpers\ResponseHelper;
+use App\Http\Middleware\EnsureUserIsActive;
 use App\Http\Requests\LoginStoreRequest;
 use App\Http\Resources\UserResource;
 use App\Interfaces\AuthRepositoryInterface;
@@ -37,6 +38,10 @@ class AuthController extends Controller
 
             if (! $user || ! Hash::check($credentials['password'], $user->password)) {
                 return ResponseHelper::jsonResponse(false, 'Unauthorized', null, 401);
+            }
+
+            if ($user->is_active === false) {
+                return ResponseHelper::jsonResponse(false, EnsureUserIsActive::DEACTIVATED_MESSAGE, null, 403);
             }
 
             // If MFA is globally enabled, enforce lockout and TOTP challenge
@@ -103,6 +108,11 @@ class AuthController extends Controller
             );
 
             $user = $result['user'];
+            if (! $user->is_active || $user->trashed()) {
+                $user->tokens()->delete();
+
+                return ResponseHelper::jsonResponse(false, EnsureUserIsActive::DEACTIVATED_MESSAGE, null, 403);
+            }
             if ($user->hasRole('employee')) {
                 $user->load('employeeProfile');
             }
