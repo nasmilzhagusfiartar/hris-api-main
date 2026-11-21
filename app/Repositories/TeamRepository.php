@@ -324,8 +324,12 @@ class TeamRepository implements TeamRepositoryInterface
                 now()->subWeek()->endOfWeek(),
             ])->first();
 
-            // Get all member statistics in a single optimized query
-            $memberStats = TeamMember::selectRaw('
+            // Get all member statistics in a single optimized query (active non-deleted employees only)
+            $memberStats = TeamMember::whereHas('employee', function ($q) {
+                $q->whereNull('employee_profiles.deleted_at')
+                    ->whereHas('user', fn ($u) => $u->where('is_active', true))
+                    ->whereHas('jobInformation', fn ($j) => $j->whereNotIn('status', \App\Enums\JobStatus::inactiveValues()));
+            })->selectRaw('
                 COUNT(CASE WHEN left_at IS NULL THEN 1 END) as total,
                 COUNT(CASE WHEN left_at IS NULL AND YEAR(joined_at) = ? AND MONTH(joined_at) = ? THEN 1 END) as added_this_month,
                 COUNT(CASE WHEN left_at IS NULL AND joined_at < ? THEN 1 END) as last_month_total
@@ -432,9 +436,14 @@ class TeamRepository implements TeamRepositoryInterface
                 $months[$key] = $date->format('M');
             }
 
-            // Get all member data in a single query
+            // Get all member data in a single query (active non-deleted employees only)
             $memberStats = TeamMember::where('team_id', $teamId)
                 ->whereNull('left_at')
+                ->whereHas('employee', function ($q) {
+                    $q->whereNull('employee_profiles.deleted_at')
+                        ->whereHas('user', fn ($u) => $u->where('is_active', true))
+                        ->whereHas('jobInformation', fn ($j) => $j->whereNotIn('status', \App\Enums\JobStatus::inactiveValues()));
+                })
                 ->whereIn(DB::raw('DATE_FORMAT(joined_at, "%Y-%m")'), array_keys($months))
                 ->selectRaw('DATE_FORMAT(joined_at, "%Y-%m") as month, COUNT(*) as count')
                 ->groupBy('month')

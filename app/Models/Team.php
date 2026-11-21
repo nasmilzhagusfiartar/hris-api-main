@@ -44,7 +44,13 @@ class Team extends Model
 
     public function members()
     {
-        return $this->hasMany(TeamMember::class)->whereNull('left_at');
+        return $this->hasMany(TeamMember::class)
+            ->whereNull('left_at')
+            ->whereHas('employee', function ($q) {
+                $q->whereNull('employee_profiles.deleted_at')
+                    ->whereHas('user', fn ($u) => $u->where('is_active', true))
+                    ->whereHas('jobInformation', fn ($j) => $j->whereNotIn('status', \App\Enums\JobStatus::inactiveValues()));
+            });
     }
 
     public function projects()

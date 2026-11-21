@@ -14,12 +14,21 @@ class ProjectTaskResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        $assignee = $this->relationLoaded('assignee') ? $this->assignee : null;
+        $assigneeDeactivated = $assignee
+            ? ($assignee->trashed()
+                || ($assignee->relationLoaded('user') && $assignee->user && $assignee->user->is_active === false)
+                || ($assignee->relationLoaded('jobInformation') && \App\Enums\JobStatus::isInactiveStatus($assignee->jobInformation?->status)))
+            : false;
+
         return [
             'id' => $this->id,
             'project_id' => $this->project_id,
             'name' => $this->name,
             'description' => $this->description,
             'assignee_id' => $this->assignee_id,
+            'assignee_deactivated' => $assigneeDeactivated,
+            'assignee_label' => $assigneeDeactivated ? 'Deactivated employee' : ($assignee?->user?->name ?? null),
             'priority' => $this->priority,
             'status' => $this->status,
             'due_date' => $this->due_date?->format('Y-m-d'),

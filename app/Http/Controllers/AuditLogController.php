@@ -31,7 +31,7 @@ class AuditLogController extends Controller implements HasMiddleware
     {
         $validated = $request->validate([
             'search' => 'nullable|string|max:150',
-            'activity_type' => 'nullable|string|in:all,login,logout,failed_login,create,update,delete,access,mfa_enabled,mfa_disabled,mfa_success,mfa_failed,mfa_recovery_used,mfa_locked,mfa_reset,account_deactivated,account_reactivated',
+            'activity_type' => 'nullable|string|in:all,login,logout,failed_login,create,update,delete,access,mfa_enabled,mfa_disabled,mfa_success,mfa_failed,mfa_recovery_used,mfa_locked,mfa_reset,account_deactivated,account_reactivated,team_member_removed,team_lead_unassigned',
             'start_date' => 'nullable|date',
             'end_date' => 'nullable|date',
             'row_per_page' => 'nullable|integer|min:5|max:100',
@@ -271,6 +271,8 @@ class AuditLogController extends Controller implements HasMiddleware
             case 'mfa_reset':
             case 'account_deactivated':
             case 'account_reactivated':
+            case 'team_member_removed':
+            case 'team_lead_unassigned':
                 $mfaEventExpr = $this->jsonVal('$.mfa_event');
                 $query->whereRaw("{$mfaEventExpr} = ?", [$activityType]);
                 break;
