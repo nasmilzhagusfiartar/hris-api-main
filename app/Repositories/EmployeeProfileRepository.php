@@ -222,7 +222,7 @@ class EmployeeProfileRepository implements EmployeeProfileRepositoryInterface
                     // Clear statistics cache
                     $this->clearEmployeeStatisticsCache();
 
-                    return $employee->load(['user', 'jobInformation', 'bankInformation', 'emergencyContacts']);
+                    return $employee->load(['user', 'jobInformation.store', 'bankInformation', 'emergencyContacts']);
                 });
             } catch (QueryException $e) {
                 if ($attempt < $maxAttempts && $this->isEmployeeCodeUniqueViolation($e)) {
