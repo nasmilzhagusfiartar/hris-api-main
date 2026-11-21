@@ -82,7 +82,7 @@ class TeamRepository implements TeamRepositoryInterface
     public function getById(
         string $id
     ): Team {
-        return Team::with([
+        $team = Team::with([
             'leader',
             'leader.employeeProfile',
             'leader.employeeProfile.jobInformation',
@@ -90,7 +90,112 @@ class TeamRepository implements TeamRepositoryInterface
             'members.employee',
             'members.employee.user',
             'members.employee.jobInformation',
-        ])->withCount('members')->findOrFail($id);
+        ])->withCount(['members', 'projects'])->findOrFail($id);
+
+        $team->setAttribute('recent_activities', $this->buildRecentActivities($team));
+
+        return $team;
+    }
+
+    /**
+     * Build up to 5 latest real activities for this team from Audit Logs (telescope_entries)
+     * and Project Tasks belonging to this team's projects.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function buildRecentActivities(Team $team): array
+    {
+        $activities = [];
+
+        // 1. Audit Log entries related to this team (add/remove member, update team / lead)
+        if (\Illuminate\Support\Facades\Schema::hasTable('telescope_entries')) {
+            try {
+                $uriExpr = DB::getDriverName() === 'sqlite'
+                    ? "json_extract(content, '$.uri')"
+                    : "JSON_UNQUOTE(JSON_EXTRACT(content, '$.uri'))";
+                $methodExpr = DB::getDriverName() === 'sqlite'
+                    ? "json_extract(content, '$.method')"
+                    : "JSON_UNQUOTE(JSON_EXTRACT(content, '$.method'))";
+
+                $teamUriPattern = "%/api/v1/teams/{$team->id}%";
+                $logs = DB::table('telescope_entries')
+                    ->where('type', 'request')
+                    ->whereRaw("{$uriExpr} LIKE ?", [$teamUriPattern])
+                    ->whereRaw("{$methodExpr} IN ('POST', 'PUT', 'PATCH', 'DELETE')")
+                    ->orderByDesc('sequence')
+                    ->limit(10)
+                    ->get(['uuid', 'content', 'created_at']);
+
+                foreach ($logs as $row) {
+                    $content = json_decode((string) $row->content, true) ?: [];
+                    $uri = (string) ($content['uri'] ?? '');
+                    $method = strtoupper((string) ($content['method'] ?? ''));
+                    $status = (int) ($content['response_status'] ?? 200);
+                    if ($status >= 400) {
+                        continue;
+                    }
+
+                    $actorName = $content['user']['name'] ?? 'System';
+                    $type = 'team_updated';
+                    $title = "Team settings updated by {$actorName}";
+
+                    if (str_contains($uri, '/add-member')) {
+                        $type = 'member_added';
+                        $title = "Team member added by {$actorName}";
+                    } elseif (str_contains($uri, '/remove-member')) {
+                        $type = 'member_removed';
+                        $title = "Team member removed by {$actorName}";
+                    } elseif (! empty($content['payload']['team_lead_id'])) {
+                        $type = 'lead_changed';
+                        $title = "Team lead updated by {$actorName}";
+                    } elseif ($method === 'DELETE') {
+                        continue;
+                    }
+
+                    $activities[] = [
+                        'id' => 'audit-'.$row->uuid,
+                        'type' => $type,
+                        'title' => $title,
+                        'actor' => $actorName,
+                        'status' => $type,
+                        'timestamp' => \Carbon\Carbon::parse($row->created_at, 'UTC')->toIso8601String(),
+                    ];
+                }
+            } catch (\Throwable $e) {
+                // Ignore audit query errors so team detail always loads
+            }
+        }
+
+        // 2. Project tasks belonging to this team's projects
+        try {
+            $tasks = \App\Models\ProjectTask::with(['project:id,name', 'assignee.user:id,name'])
+                ->whereHas('project.teams', function ($q) use ($team) {
+                    $q->where('teams.id', $team->id);
+                })
+                ->orderByDesc('updated_at')
+                ->limit(5)
+                ->get();
+
+            foreach ($tasks as $task) {
+                $statusVal = $task->status instanceof \BackedEnum ? $task->status->value : (string) $task->status;
+                $projectName = $task->project?->name ? " ({$task->project->name})" : '';
+                $activities[] = [
+                    'id' => 'task-'.$task->id,
+                    'type' => $statusVal === 'done' || $statusVal === 'completed' ? 'task_completed' : 'task_updated',
+                    'title' => ($task->name ?? 'Task').$projectName,
+                    'actor' => $task->assignee?->user?->name ?? null,
+                    'status' => $statusVal,
+                    'timestamp' => ($task->updated_at ?? $task->created_at)?->toIso8601String(),
+                ];
+            }
+        } catch (\Throwable $e) {
+            // Ignore if relation fails
+        }
+
+        // Sort newest first & return max 5
+        usort($activities, fn ($a, $b) => strcmp((string) ($b['timestamp'] ?? ''), (string) ($a['timestamp'] ?? '')));
+
+        return array_slice($activities, 0, 5);
     }
 
     public function create(array $data): Team
