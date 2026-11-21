@@ -49,7 +49,7 @@ class AttendanceController extends Controller implements HasMiddleware
 
             return ResponseHelper::jsonResponse(true, 'Attendances Retrieved Successfully', AttendanceResource::collection($attendances), 200);
         } catch (\Throwable $e) {
-            return ResponseHelper::jsonResponse(false, 'Internal Server Error: '.$e->getMessage(), null, 500);
+            return ResponseHelper::serverError($e);
         }
     }
 
@@ -68,7 +68,7 @@ class AttendanceController extends Controller implements HasMiddleware
 
             return ResponseHelper::jsonResponse(true, 'Attendances Retrieved Successfully', PaginateResource::make($attendances, AttendanceResource::class), 200);
         } catch (\Throwable $e) {
-            return ResponseHelper::jsonResponse(false, 'Internal Server Error: '.$e->getMessage(), null, 500);
+            return ResponseHelper::serverError($e);
         }
     }
 
@@ -79,7 +79,7 @@ class AttendanceController extends Controller implements HasMiddleware
 
             return ResponseHelper::jsonResponse(true, 'My Attendances Retrieved Successfully', AttendanceResource::collection($attendances), 200);
         } catch (\Throwable $e) {
-            return ResponseHelper::jsonResponse(false, 'Internal Server Error: '.$e->getMessage(), null, 500);
+            return ResponseHelper::serverError($e);
         }
     }
 
@@ -90,7 +90,7 @@ class AttendanceController extends Controller implements HasMiddleware
 
             return ResponseHelper::jsonResponse(true, 'Attendance Statistics Retrieved Successfully', $statistics, 200);
         } catch (\Throwable $e) {
-            return ResponseHelper::jsonResponse(false, 'Internal Server Error: '.$e->getMessage(), null, 500);
+            return ResponseHelper::serverError($e);
         }
     }
 
@@ -105,7 +105,7 @@ class AttendanceController extends Controller implements HasMiddleware
 
             return ResponseHelper::jsonResponse(true, 'Last Attendance Retrieved Successfully', new AttendanceResource($attendance), 200);
         } catch (\Throwable $e) {
-            return ResponseHelper::jsonResponse(false, 'Internal Server Error: '.$e->getMessage(), null, 500);
+            return ResponseHelper::serverError($e);
         }
     }
 
@@ -120,7 +120,7 @@ class AttendanceController extends Controller implements HasMiddleware
         } catch (\Exception $e) {
             return ResponseHelper::jsonResponse(false, $e->getMessage(), null, 400);
         } catch (\Throwable $e) {
-            return ResponseHelper::jsonResponse(false, 'Internal Server Error: '.$e->getMessage(), null, 500);
+            return ResponseHelper::serverError($e);
         }
     }
 
@@ -135,7 +135,7 @@ class AttendanceController extends Controller implements HasMiddleware
         } catch (\Exception $e) {
             return ResponseHelper::jsonResponse(false, $e->getMessage(), null, 400);
         } catch (\Throwable $e) {
-            return ResponseHelper::jsonResponse(false, 'Internal Server Error: '.$e->getMessage(), null, 500);
+            return ResponseHelper::serverError($e);
         }
     }
 
@@ -149,7 +149,7 @@ class AttendanceController extends Controller implements HasMiddleware
 
             return ResponseHelper::jsonResponse(true, 'Attendance Statistics Retrieved Successfully', $statistics, 200);
         } catch (\Throwable $e) {
-            return ResponseHelper::jsonResponse(false, 'Internal Server Error: '.$e->getMessage(), null, 500);
+            return ResponseHelper::serverError($e);
         }
     }
 
@@ -165,7 +165,7 @@ class AttendanceController extends Controller implements HasMiddleware
         } catch (ModelNotFoundException $e) {
             return ResponseHelper::jsonResponse(false, 'Attendance Not Found', null, 404);
         } catch (\Throwable $e) {
-            return ResponseHelper::jsonResponse(false, 'Internal Server Error: '.$e->getMessage(), null, 500);
+            return ResponseHelper::serverError($e);
         }
     }
 }

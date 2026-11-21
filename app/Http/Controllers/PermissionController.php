@@ -43,7 +43,7 @@ class PermissionController extends Controller implements HasMiddleware
 
             return ResponseHelper::jsonResponse(true, 'Permissions Retrieved Successfully', PermissionResource::collection($permissions), 200);
         } catch (\Throwable $e) {
-            return ResponseHelper::jsonResponse(false, 'Internal Server Error: '.$e->getMessage(), null, 500);
+            return ResponseHelper::serverError($e);
         }
     }
 
@@ -57,7 +57,7 @@ class PermissionController extends Controller implements HasMiddleware
 
             return ResponseHelper::jsonResponse(true, 'Grouped Permissions Retrieved Successfully', $grouped, 200);
         } catch (\Throwable $e) {
-            return ResponseHelper::jsonResponse(false, 'Internal Server Error: '.$e->getMessage(), null, 500);
+            return ResponseHelper::serverError($e);
         }
     }
 
@@ -75,7 +75,7 @@ class PermissionController extends Controller implements HasMiddleware
 
             return ResponseHelper::jsonResponse(true, 'Permissions Retrieved Successfully', new PaginateResource($permissions, PermissionResource::class), 200);
         } catch (\Throwable $e) {
-            return ResponseHelper::jsonResponse(false, 'Internal Server Error: '.$e->getMessage(), null, 500);
+            return ResponseHelper::serverError($e);
         }
     }
 
@@ -89,7 +89,7 @@ class PermissionController extends Controller implements HasMiddleware
 
             return ResponseHelper::jsonResponse(true, 'Permission Created Successfully', new PermissionResource($permission), 201);
         } catch (\Throwable $e) {
-            return ResponseHelper::jsonResponse(false, 'Failed to create permission: '.$e->getMessage(), null, 500);
+            return ResponseHelper::serverError($e);
         }
     }
 
@@ -105,7 +105,7 @@ class PermissionController extends Controller implements HasMiddleware
         } catch (ModelNotFoundException $e) {
             return ResponseHelper::jsonResponse(false, 'Permission Not Found', null, 404);
         } catch (\Throwable $e) {
-            return ResponseHelper::jsonResponse(false, 'Internal Server Error: '.$e->getMessage(), null, 500);
+            return ResponseHelper::serverError($e);
         }
     }
 
@@ -121,7 +121,7 @@ class PermissionController extends Controller implements HasMiddleware
         } catch (ModelNotFoundException $e) {
             return ResponseHelper::jsonResponse(false, 'Permission Not Found', null, 404);
         } catch (\Throwable $e) {
-            return ResponseHelper::jsonResponse(false, 'Failed to update permission: '.$e->getMessage(), null, 500);
+            return ResponseHelper::serverError($e);
         }
     }
 

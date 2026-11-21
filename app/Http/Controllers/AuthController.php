@@ -112,7 +112,7 @@ class AuthController extends Controller
         } catch (MfaVerificationException $e) {
             return ResponseHelper::jsonResponse(false, $e->getMessage(), $e->mfaData ?: null, $e->getCode() ?: 422);
         } catch (\Throwable $e) {
-            return ResponseHelper::jsonResponse(false, 'Failed to verify MFA code: '.$e->getMessage(), null, 500);
+            return ResponseHelper::serverError($e);
         }
     }
 
@@ -123,7 +123,7 @@ class AuthController extends Controller
 
             return ResponseHelper::jsonResponse(true, 'Profile Retrieved Successfully', new UserResource($user), 200);
         } catch (\Exception $e) {
-            return ResponseHelper::jsonResponse(false, $e->getMessage(), null, 500);
+            return ResponseHelper::serverError($e);
         }
     }
 
@@ -134,7 +134,7 @@ class AuthController extends Controller
 
             return ResponseHelper::jsonResponse(true, 'Logout Successful', new UserResource($user), 200);
         } catch (\Exception $e) {
-            return ResponseHelper::jsonResponse(false, $e->getMessage(), null, 500);
+            return ResponseHelper::serverError($e);
         }
     }
 

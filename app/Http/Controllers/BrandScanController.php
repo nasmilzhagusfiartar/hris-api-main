@@ -44,12 +44,7 @@ class BrandScanController extends Controller implements HasMiddleware
                 200
             );
         } catch (\Throwable $e) {
-            return ResponseHelper::jsonResponse(
-                false,
-                'Internal Server Error: ' . $e->getMessage(),
-                null,
-                500
-            );
+            return ResponseHelper::serverError($e);
         }
     }
 
@@ -68,12 +63,7 @@ class BrandScanController extends Controller implements HasMiddleware
                 202
             );
         } catch (\Throwable $e) {
-            return ResponseHelper::jsonResponse(
-                false,
-                'Internal Server Error: ' . $e->getMessage(),
-                null,
-                500
-            );
+            return ResponseHelper::serverError($e);
         }
     }
 
@@ -99,12 +89,7 @@ class BrandScanController extends Controller implements HasMiddleware
                 404
             );
         } catch (\Throwable $e) {
-            return ResponseHelper::jsonResponse(
-                false,
-                'Internal Server Error: ' . $e->getMessage(),
-                null,
-                500
-            );
+            return ResponseHelper::serverError($e);
         }
     }
 
@@ -130,12 +115,7 @@ class BrandScanController extends Controller implements HasMiddleware
                 404
             );
         } catch (\Throwable $e) {
-            return ResponseHelper::jsonResponse(
-                false,
-                'Error: ' . $e->getMessage(),
-                null,
-                500
-            );
+            return ResponseHelper::serverError($e);
         }
     }
 
@@ -161,12 +141,7 @@ class BrandScanController extends Controller implements HasMiddleware
                 404
             );
         } catch (\Throwable $e) {
-            return ResponseHelper::jsonResponse(
-                false,
-                'Error: ' . $e->getMessage(),
-                null,
-                500
-            );
+            return ResponseHelper::serverError($e);
         }
     }
 }

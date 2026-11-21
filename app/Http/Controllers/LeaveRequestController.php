@@ -46,7 +46,7 @@ class LeaveRequestController extends Controller implements HasMiddleware
 
             return ResponseHelper::jsonResponse(true, 'Leave Requests Retrieved Successfully', LeaveRequestResource::collection($leaveRequests), 200);
         } catch (\Throwable $e) {
-            return ResponseHelper::jsonResponse(false, $e->getMessage(), null, 500);
+            return ResponseHelper::serverError($e);
         }
     }
 
@@ -65,7 +65,7 @@ class LeaveRequestController extends Controller implements HasMiddleware
 
             return ResponseHelper::jsonResponse(true, 'Leave Requests Retrieved Successfully', PaginateResource::make($leaveRequests, LeaveRequestResource::class), 200);
         } catch (\Throwable $e) {
-            return ResponseHelper::jsonResponse(false, 'Internal Server Error: '.$e->getMessage(), null, 500);
+            return ResponseHelper::serverError($e);
         }
     }
 
@@ -80,7 +80,7 @@ class LeaveRequestController extends Controller implements HasMiddleware
 
             return ResponseHelper::jsonResponse(true, 'My Leave Requests Retrieved Successfully', LeaveRequestResource::collection($leaveRequests), 200);
         } catch (\Throwable $e) {
-            return ResponseHelper::jsonResponse(false, 'Internal Server Error: '.$e->getMessage(), null, 500);
+            return ResponseHelper::serverError($e);
         }
     }
 
@@ -102,7 +102,7 @@ class LeaveRequestController extends Controller implements HasMiddleware
         } catch (\Exception $e) {
             return ResponseHelper::jsonResponse(false, $e->getMessage(), null, 400);
         } catch (\Throwable $e) {
-            return ResponseHelper::jsonResponse(false, 'Internal Server Error: '.$e->getMessage(), null, 500);
+            return ResponseHelper::serverError($e);
         }
     }
 
@@ -118,7 +118,7 @@ class LeaveRequestController extends Controller implements HasMiddleware
         } catch (ModelNotFoundException $e) {
             return ResponseHelper::jsonResponse(false, 'Leave Request Not Found', null, 404);
         } catch (\Throwable $e) {
-            return ResponseHelper::jsonResponse(false, 'Internal Server Error: '.$e->getMessage(), null, 500);
+            return ResponseHelper::serverError($e);
         }
     }
 
@@ -131,7 +131,7 @@ class LeaveRequestController extends Controller implements HasMiddleware
         } catch (ModelNotFoundException $e) {
             return ResponseHelper::jsonResponse(false, 'Leave Request Not Found', null, 404);
         } catch (\Throwable $e) {
-            return ResponseHelper::jsonResponse(false, 'Internal Server Error: '.$e->getMessage(), null, 500);
+            return ResponseHelper::serverError($e);
         }
     }
 
@@ -144,7 +144,7 @@ class LeaveRequestController extends Controller implements HasMiddleware
         } catch (ModelNotFoundException $e) {
             return ResponseHelper::jsonResponse(false, 'Leave Request Not Found', null, 404);
         } catch (\Throwable $e) {
-            return ResponseHelper::jsonResponse(false, 'Internal Server Error: '.$e->getMessage(), null, 500);
+            return ResponseHelper::serverError($e);
         }
     }
 }

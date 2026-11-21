@@ -35,7 +35,7 @@ class DashboardController extends Controller implements HasMiddleware
 
             return ResponseHelper::jsonResponse(true, 'Security Dashboard Statistics Retrieved Successfully', $stats, 200);
         } catch (\Throwable $e) {
-            return ResponseHelper::jsonResponse(false, 'Internal Server Error: '.$e->getMessage(), null, 500);
+            return ResponseHelper::serverError($e);
         }
     }
 
@@ -49,7 +49,7 @@ class DashboardController extends Controller implements HasMiddleware
 
             return ResponseHelper::jsonResponse(true, 'Quick Action Counts Retrieved Successfully', $counts, 200);
         } catch (\Throwable $e) {
-            return ResponseHelper::jsonResponse(false, 'Internal Server Error: '.$e->getMessage(), null, 500);
+            return ResponseHelper::serverError($e);
         }
     }
 
@@ -74,7 +74,7 @@ class DashboardController extends Controller implements HasMiddleware
 
             return ResponseHelper::jsonResponse(true, 'Dashboard Statistics Retrieved Successfully', $statistics, 200);
         } catch (\Throwable $e) {
-            return ResponseHelper::jsonResponse(false, 'Internal Server Error: '.$e->getMessage(), null, 500);
+            return ResponseHelper::serverError($e);
         }
     }
 
@@ -86,7 +86,7 @@ class DashboardController extends Controller implements HasMiddleware
 
             return ResponseHelper::jsonResponse(true, 'Employee Dashboard Statistics Retrieved Successfully', $statistics, 200);
         } catch (\Throwable $e) {
-            return ResponseHelper::jsonResponse(false, 'Internal Server Error: '.$e->getMessage(), null, 500);
+            return ResponseHelper::serverError($e);
         }
     }
 }

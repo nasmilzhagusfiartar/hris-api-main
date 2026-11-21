@@ -54,7 +54,7 @@ class MfaController extends Controller implements HasMiddleware
 
             return ResponseHelper::jsonResponse(true, 'MFA setup initialized successfully', $setupData, 200);
         } catch (\Throwable $e) {
-            return ResponseHelper::jsonResponse(false, 'Failed to initialize MFA setup: '.$e->getMessage(), null, 500);
+            return ResponseHelper::serverError($e);
         }
     }
 
@@ -81,7 +81,7 @@ class MfaController extends Controller implements HasMiddleware
         } catch (\InvalidArgumentException $e) {
             return ResponseHelper::jsonResponse(false, $e->getMessage(), null, 422);
         } catch (\Throwable $e) {
-            return ResponseHelper::jsonResponse(false, 'Failed to enable MFA: '.$e->getMessage(), null, 500);
+            return ResponseHelper::serverError($e);
         }
     }
 
@@ -111,7 +111,7 @@ class MfaController extends Controller implements HasMiddleware
         } catch (\InvalidArgumentException $e) {
             return ResponseHelper::jsonResponse(false, $e->getMessage(), null, 422);
         } catch (\Throwable $e) {
-            return ResponseHelper::jsonResponse(false, 'Failed to disable MFA: '.$e->getMessage(), null, 500);
+            return ResponseHelper::serverError($e);
         }
     }
 
@@ -138,7 +138,7 @@ class MfaController extends Controller implements HasMiddleware
         } catch (\InvalidArgumentException $e) {
             return ResponseHelper::jsonResponse(false, $e->getMessage(), null, 422);
         } catch (\Throwable $e) {
-            return ResponseHelper::jsonResponse(false, 'Failed to regenerate recovery codes: '.$e->getMessage(), null, 500);
+            return ResponseHelper::serverError($e);
         }
     }
 
@@ -165,7 +165,7 @@ class MfaController extends Controller implements HasMiddleware
                 'mfa_enabled' => false,
             ], 200);
         } catch (\Throwable $e) {
-            return ResponseHelper::jsonResponse(false, 'Failed to reset user MFA: '.$e->getMessage(), null, 500);
+            return ResponseHelper::serverError($e);
         }
     }
 }

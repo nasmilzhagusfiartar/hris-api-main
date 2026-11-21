@@ -50,7 +50,7 @@ class StoreController extends Controller implements HasMiddleware
 
             return ResponseHelper::jsonResponse(true, 'Stores Retrieved Successfully', StoreResource::collection($stores), 200);
         } catch (\Throwable $e) {
-            return ResponseHelper::jsonResponse(false, 'Internal Server Error: '.$e->getMessage(), null, 500);
+            return ResponseHelper::serverError($e);
         }
     }
 
@@ -79,7 +79,7 @@ class StoreController extends Controller implements HasMiddleware
 
             return ResponseHelper::jsonResponse(true, 'Stores Retrieved Successfully', PaginateResource::make($stores, StoreResource::class), 200);
         } catch (\Throwable $e) {
-            return ResponseHelper::jsonResponse(false, 'Internal Server Error: '.$e->getMessage(), null, 500);
+            return ResponseHelper::serverError($e);
         }
     }
 
@@ -90,7 +90,7 @@ class StoreController extends Controller implements HasMiddleware
 
             return ResponseHelper::jsonResponse(true, 'Store Created Successfully', new StoreResource($store), 201);
         } catch (\Throwable $e) {
-            return ResponseHelper::jsonResponse(false, 'Failed to create store: '.$e->getMessage(), null, 500);
+            return ResponseHelper::serverError($e);
         }
     }
 
@@ -103,7 +103,7 @@ class StoreController extends Controller implements HasMiddleware
         } catch (ModelNotFoundException $e) {
             return ResponseHelper::jsonResponse(false, 'Store Not Found', null, 404);
         } catch (\Throwable $e) {
-            return ResponseHelper::jsonResponse(false, 'Internal Server Error: '.$e->getMessage(), null, 500);
+            return ResponseHelper::serverError($e);
         }
     }
 
@@ -116,7 +116,7 @@ class StoreController extends Controller implements HasMiddleware
         } catch (ModelNotFoundException $e) {
             return ResponseHelper::jsonResponse(false, 'Store Not Found', null, 404);
         } catch (\Throwable $e) {
-            return ResponseHelper::jsonResponse(false, 'Failed to update store: '.$e->getMessage(), null, 500);
+            return ResponseHelper::serverError($e);
         }
     }
 
@@ -131,7 +131,7 @@ class StoreController extends Controller implements HasMiddleware
         } catch (HttpException $e) {
             return ResponseHelper::jsonResponse(false, $e->getMessage(), null, $e->getStatusCode());
         } catch (\Throwable $e) {
-            return ResponseHelper::jsonResponse(false, 'Failed to delete store: '.$e->getMessage(), null, 500);
+            return ResponseHelper::serverError($e);
         }
     }
 }

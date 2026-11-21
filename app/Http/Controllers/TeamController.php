@@ -53,7 +53,7 @@ class TeamController extends Controller implements HasMiddleware
 
             return ResponseHelper::jsonResponse(true, 'Teams Retrieved Successfully', TeamResource::collection($teams), 200);
         } catch (\Throwable $e) {
-            return ResponseHelper::jsonResponse(false, 'Internal Server Error: '.$e->getMessage(), null, 500);
+            return ResponseHelper::serverError($e);
         }
     }
 
@@ -78,7 +78,7 @@ class TeamController extends Controller implements HasMiddleware
 
             return ResponseHelper::jsonResponse(true, 'Teams Retrieved Successfully', PaginateResource::make($teams, TeamResource::class), 200);
         } catch (\Throwable $e) {
-            return ResponseHelper::jsonResponse(false, 'Internal Server Error: '.$e->getMessage(), null, 500);
+            return ResponseHelper::serverError($e);
         }
     }
 
@@ -94,7 +94,7 @@ class TeamController extends Controller implements HasMiddleware
 
             return ResponseHelper::jsonResponse(true, 'Team Created Successfully', new TeamResource($team), 201);
         } catch (\Throwable $e) {
-            return ResponseHelper::jsonResponse(false, $e->getMessage(), null, 500);
+            return ResponseHelper::serverError($e);
         }
     }
 
@@ -108,7 +108,7 @@ class TeamController extends Controller implements HasMiddleware
 
             return ResponseHelper::jsonResponse(true, 'Team Retrieved Successfully', new TeamResource($team), 200);
         } catch (\Throwable $e) {
-            return ResponseHelper::jsonResponse(false, 'Internal Server Error: '.$e->getMessage(), null, 500);
+            return ResponseHelper::serverError($e);
         }
     }
 
@@ -124,7 +124,7 @@ class TeamController extends Controller implements HasMiddleware
 
             return ResponseHelper::jsonResponse(true, 'Team Updated Successfully', new TeamResource($team), 200);
         } catch (\Throwable $e) {
-            return ResponseHelper::jsonResponse(false, $e->getMessage(), null, 500);
+            return ResponseHelper::serverError($e);
         }
     }
 
@@ -138,7 +138,7 @@ class TeamController extends Controller implements HasMiddleware
 
             return ResponseHelper::jsonResponse(true, 'Team Deleted Successfully', null, 200);
         } catch (\Throwable $e) {
-            return ResponseHelper::jsonResponse(false, 'Internal Server Error: '.$e->getMessage(), null, 500);
+            return ResponseHelper::serverError($e);
         }
     }
 
@@ -152,7 +152,7 @@ class TeamController extends Controller implements HasMiddleware
 
             return ResponseHelper::jsonResponse(true, 'Team Statistics Retrieved Successfully', $statistics, 200);
         } catch (\Throwable $e) {
-            return ResponseHelper::jsonResponse(false, 'Internal Server Error: '.$e->getMessage(), null, 500);
+            return ResponseHelper::serverError($e);
         }
     }
 
@@ -166,7 +166,7 @@ class TeamController extends Controller implements HasMiddleware
 
             return ResponseHelper::jsonResponse(true, 'Team Statistics Retrieved Successfully', $statistics, 200);
         } catch (\Throwable $e) {
-            return ResponseHelper::jsonResponse(false, 'Internal Server Error: '.$e->getMessage(), null, 500);
+            return ResponseHelper::serverError($e);
         }
     }
 
@@ -180,7 +180,7 @@ class TeamController extends Controller implements HasMiddleware
 
             return ResponseHelper::jsonResponse(true, 'Team Chart Data Retrieved Successfully', $chartData, 200);
         } catch (\Throwable $e) {
-            return ResponseHelper::jsonResponse(false, 'Internal Server Error: '.$e->getMessage(), null, 500);
+            return ResponseHelper::serverError($e);
         }
     }
 
@@ -198,7 +198,7 @@ class TeamController extends Controller implements HasMiddleware
         } catch (\Exception $e) {
             return ResponseHelper::jsonResponse(false, $e->getMessage(), null, 400);
         } catch (\Throwable $e) {
-            return ResponseHelper::jsonResponse(false, 'Internal Server Error: '.$e->getMessage(), null, 500);
+            return ResponseHelper::serverError($e);
         }
     }
 
@@ -216,7 +216,7 @@ class TeamController extends Controller implements HasMiddleware
         } catch (\Exception $e) {
             return ResponseHelper::jsonResponse(false, $e->getMessage(), null, 400);
         } catch (\Throwable $e) {
-            return ResponseHelper::jsonResponse(false, 'Internal Server Error: '.$e->getMessage(), null, 500);
+            return ResponseHelper::serverError($e);
         }
     }
 }

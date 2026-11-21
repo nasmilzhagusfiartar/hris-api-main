@@ -44,7 +44,7 @@ class RoleController extends Controller implements HasMiddleware
 
             return ResponseHelper::jsonResponse(true, 'Roles Retrieved Successfully', RoleResource::collection($roles), 200);
         } catch (\Throwable $e) {
-            return ResponseHelper::jsonResponse(false, 'Internal Server Error: '.$e->getMessage(), null, 500);
+            return ResponseHelper::serverError($e);
         }
     }
 
@@ -61,7 +61,7 @@ class RoleController extends Controller implements HasMiddleware
 
             return ResponseHelper::jsonResponse(true, 'Roles Retrieved Successfully', new PaginateResource($roles, RoleResource::class), 200);
         } catch (\Throwable $e) {
-            return ResponseHelper::jsonResponse(false, 'Internal Server Error: '.$e->getMessage(), null, 500);
+            return ResponseHelper::serverError($e);
         }
     }
 
@@ -75,7 +75,7 @@ class RoleController extends Controller implements HasMiddleware
 
             return ResponseHelper::jsonResponse(true, 'Role Created Successfully', new RoleResource($role), 201);
         } catch (\Throwable $e) {
-            return ResponseHelper::jsonResponse(false, 'Failed to create role: '.$e->getMessage(), null, 500);
+            return ResponseHelper::serverError($e);
         }
     }
 
@@ -91,7 +91,7 @@ class RoleController extends Controller implements HasMiddleware
         } catch (ModelNotFoundException $e) {
             return ResponseHelper::jsonResponse(false, 'Role Not Found', null, 404);
         } catch (\Throwable $e) {
-            return ResponseHelper::jsonResponse(false, 'Internal Server Error: '.$e->getMessage(), null, 500);
+            return ResponseHelper::serverError($e);
         }
     }
 
@@ -109,7 +109,7 @@ class RoleController extends Controller implements HasMiddleware
         } catch (HttpException $e) {
             return ResponseHelper::jsonResponse(false, $e->getMessage(), null, $e->getStatusCode());
         } catch (\Throwable $e) {
-            return ResponseHelper::jsonResponse(false, 'Failed to update role: '.$e->getMessage(), null, 500);
+            return ResponseHelper::serverError($e);
         }
     }
 
@@ -145,7 +145,7 @@ class RoleController extends Controller implements HasMiddleware
         } catch (HttpException $e) {
             return ResponseHelper::jsonResponse(false, $e->getMessage(), null, $e->getStatusCode());
         } catch (\Throwable $e) {
-            return ResponseHelper::jsonResponse(false, 'Failed to assign permissions: '.$e->getMessage(), null, 500);
+            return ResponseHelper::serverError($e);
         }
     }
 }

@@ -187,12 +187,7 @@ class AuditLogController extends Controller implements HasMiddleware
                 200
             );
         } catch (\Throwable $e) {
-            return ResponseHelper::jsonResponse(
-                false,
-                'Failed to load audit logs: '.$e->getMessage(),
-                null,
-                500
-            );
+            return ResponseHelper::serverError($e);
         }
     }
 
