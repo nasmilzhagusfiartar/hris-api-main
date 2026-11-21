@@ -163,6 +163,8 @@ class PayrollController extends Controller implements HasMiddleware
                 ],
                 200
             );
+        } catch (\Illuminate\Database\QueryException|\PDOException $e) {
+            return ResponseHelper::serverError($e);
         } catch (\Exception $e) {
             return ResponseHelper::jsonResponse(false, $e->getMessage(), null, 400);
         } catch (\Throwable $e) {
@@ -186,6 +188,8 @@ class PayrollController extends Controller implements HasMiddleware
             return ResponseHelper::jsonResponse(true, 'Payroll Detail Updated Successfully', new PayrollDetailResource($payrollDetail), 200);
         } catch (ModelNotFoundException $e) {
             return ResponseHelper::jsonResponse(false, 'Payroll Detail Not Found', null, 404);
+        } catch (\Illuminate\Database\QueryException|\PDOException $e) {
+            return ResponseHelper::serverError($e);
         } catch (\Exception $e) {
             return ResponseHelper::jsonResponse(false, $e->getMessage(), null, 400);
         } catch (\Throwable $e) {
@@ -208,6 +212,8 @@ class PayrollController extends Controller implements HasMiddleware
             return ResponseHelper::jsonResponse(true, 'Payroll Marked as Paid Successfully', new PayrollResource($payroll), 200);
         } catch (ModelNotFoundException $e) {
             return ResponseHelper::jsonResponse(false, 'Payroll Not Found', null, 404);
+        } catch (\Illuminate\Database\QueryException|\PDOException $e) {
+            return ResponseHelper::serverError($e);
         } catch (\Exception $e) {
             return ResponseHelper::jsonResponse(false, $e->getMessage(), null, 400);
         } catch (\Throwable $e) {

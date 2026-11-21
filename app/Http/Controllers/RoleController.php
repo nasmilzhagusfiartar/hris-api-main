@@ -127,7 +127,7 @@ class RoleController extends Controller implements HasMiddleware
         } catch (HttpException $e) {
             return ResponseHelper::jsonResponse(false, $e->getMessage(), null, $e->getStatusCode());
         } catch (\Throwable $e) {
-            return ResponseHelper::jsonResponse(false, $e->getMessage(), null, 400);
+            return ResponseHelper::serverError($e);
         }
     }
 

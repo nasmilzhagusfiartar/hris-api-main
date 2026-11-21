@@ -17,6 +17,8 @@ class BrandScanResult extends Model
         'dns_mx',
         'dns_ns',
         'urlscan_status',
+        'urlscan_error',
+        'urlscan_checked_at',
         'urlscan_uuid',
         'urlscan_malicious',
         'urlscan_score',
@@ -34,6 +36,7 @@ class BrandScanResult extends Model
             'dns_ns' => 'array',
             'urlscan_malicious' => 'boolean',
             'urlscan_score' => 'integer',
+            'urlscan_checked_at' => 'datetime',
         ];
     }
 

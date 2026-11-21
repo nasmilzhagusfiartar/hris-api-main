@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\UrlscanException;
 use App\Helpers\ResponseHelper;
 use App\Http\Requests\BrandScanRequest;
 use App\Http\Resources\BrandScanResource;
@@ -114,6 +115,17 @@ class BrandScanController extends Controller implements HasMiddleware
                 null,
                 404
             );
+        } catch (UrlscanException $e) {
+            $data = $e->result
+                ? new BrandScanResultResource($e->result)
+                : ($e->retryAfter !== null ? ['retry_after' => $e->retryAfter] : null);
+
+            return ResponseHelper::jsonResponse(
+                false,
+                $e->getMessage(),
+                $data,
+                $e->httpStatus
+            );
         } catch (\Throwable $e) {
             return ResponseHelper::serverError($e);
         }
@@ -139,6 +151,17 @@ class BrandScanController extends Controller implements HasMiddleware
                 'Brand Scan Result Not Found',
                 null,
                 404
+            );
+        } catch (UrlscanException $e) {
+            $data = $e->result
+                ? new BrandScanResultResource($e->result)
+                : ($e->retryAfter !== null ? ['retry_after' => $e->retryAfter] : null);
+
+            return ResponseHelper::jsonResponse(
+                false,
+                $e->getMessage(),
+                $data,
+                $e->httpStatus
             );
         } catch (\Throwable $e) {
             return ResponseHelper::serverError($e);

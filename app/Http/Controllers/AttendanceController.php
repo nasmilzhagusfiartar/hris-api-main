@@ -117,6 +117,8 @@ class AttendanceController extends Controller implements HasMiddleware
             $attendance = $this->attendanceRepository->checkIn($data);
 
             return ResponseHelper::jsonResponse(true, 'Check-in Successful', new AttendanceResource($attendance), 201);
+        } catch (\Illuminate\Database\QueryException|\PDOException $e) {
+            return ResponseHelper::serverError($e);
         } catch (\Exception $e) {
             return ResponseHelper::jsonResponse(false, $e->getMessage(), null, 400);
         } catch (\Throwable $e) {
@@ -132,6 +134,8 @@ class AttendanceController extends Controller implements HasMiddleware
             $attendance = $this->attendanceRepository->checkOut($data);
 
             return ResponseHelper::jsonResponse(true, 'Check-out Successful', new AttendanceResource($attendance), 200);
+        } catch (\Illuminate\Database\QueryException|\PDOException $e) {
+            return ResponseHelper::serverError($e);
         } catch (\Exception $e) {
             return ResponseHelper::jsonResponse(false, $e->getMessage(), null, 400);
         } catch (\Throwable $e) {

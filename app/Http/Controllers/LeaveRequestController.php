@@ -99,6 +99,8 @@ class LeaveRequestController extends Controller implements HasMiddleware
             $leaveRequest = $this->leaveRequestRepository->store($data);
 
             return ResponseHelper::jsonResponse(true, 'Leave Request Created Successfully', new LeaveRequestResource($leaveRequest), 201);
+        } catch (\Illuminate\Database\QueryException|\PDOException $e) {
+            return ResponseHelper::serverError($e);
         } catch (\Exception $e) {
             return ResponseHelper::jsonResponse(false, $e->getMessage(), null, 400);
         } catch (\Throwable $e) {

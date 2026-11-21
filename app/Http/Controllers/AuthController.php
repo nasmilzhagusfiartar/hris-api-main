@@ -80,11 +80,15 @@ class AuthController extends Controller
             $user->token = $user->createToken('auth_token')->plainTextToken;
 
             return ResponseHelper::jsonResponse(true, 'Login Successful', new UserResource($user), 200);
+        } catch (\Illuminate\Database\QueryException|\PDOException $e) {
+            return ResponseHelper::serverError($e);
         } catch (\Exception $e) {
             $code = (int) $e->getCode();
-            $status = ($code >= 400 && $code < 600) ? $code : 500;
+            if ($code >= 400 && $code < 500) {
+                return ResponseHelper::jsonResponse(false, $e->getMessage(), null, $code);
+            }
 
-            return ResponseHelper::jsonResponse(false, $e->getMessage(), null, $status);
+            return ResponseHelper::serverError($e);
         }
     }
 
@@ -164,10 +168,15 @@ class AuthController extends Controller
             ]);
 
             return ResponseHelper::jsonResponse(true, 'Profile Updated Successfully', new UserResource($user), 200);
+        } catch (\Illuminate\Database\QueryException|\PDOException $e) {
+            return ResponseHelper::serverError($e);
         } catch (\Exception $e) {
-            $status = $e->getCode() ?: 500;
+            $code = (int) $e->getCode();
+            if ($code >= 400 && $code < 500) {
+                return ResponseHelper::jsonResponse(false, $e->getMessage(), null, $code);
+            }
 
-            return ResponseHelper::jsonResponse(false, $e->getMessage(), null, $status);
+            return ResponseHelper::serverError($e);
         }
     }
 }

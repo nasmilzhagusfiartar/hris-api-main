@@ -136,8 +136,10 @@ class PermissionController extends Controller implements HasMiddleware
             return ResponseHelper::jsonResponse(true, 'Permission Deleted Successfully', null, 200);
         } catch (ModelNotFoundException $e) {
             return ResponseHelper::jsonResponse(false, 'Permission Not Found', null, 404);
+        } catch (\Symfony\Component\HttpKernel\Exception\HttpException $e) {
+            return ResponseHelper::jsonResponse(false, $e->getMessage(), null, $e->getStatusCode());
         } catch (\Throwable $e) {
-            return ResponseHelper::jsonResponse(false, 'Failed to delete permission: '.$e->getMessage(), null, 400);
+            return ResponseHelper::serverError($e);
         }
     }
 }

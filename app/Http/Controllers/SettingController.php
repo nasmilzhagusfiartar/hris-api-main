@@ -113,7 +113,7 @@ class SettingController extends Controller implements HasMiddleware
         } catch (\InvalidArgumentException $e) {
             return ResponseHelper::jsonResponse(false, $e->getMessage(), null, 422);
         } catch (\Throwable $e) {
-            return ResponseHelper::jsonResponse(false, 'Failed to update password.', null, 500);
+            return ResponseHelper::serverError($e);
         }
     }
 }

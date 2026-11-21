@@ -195,6 +195,8 @@ class TeamController extends Controller implements HasMiddleware
             $member = $this->teamRepository->addMember($team->id, $validated['employee_id']);
 
             return ResponseHelper::jsonResponse(true, 'Member Added Successfully', $member, 200);
+        } catch (\Illuminate\Database\QueryException|\PDOException $e) {
+            return ResponseHelper::serverError($e);
         } catch (\Exception $e) {
             return ResponseHelper::jsonResponse(false, $e->getMessage(), null, 400);
         } catch (\Throwable $e) {
@@ -213,6 +215,8 @@ class TeamController extends Controller implements HasMiddleware
             $member = $this->teamRepository->removeMember($team->id, $validated['employee_id']);
 
             return ResponseHelper::jsonResponse(true, 'Member Removed Successfully', $member, 200);
+        } catch (\Illuminate\Database\QueryException|\PDOException $e) {
+            return ResponseHelper::serverError($e);
         } catch (\Exception $e) {
             return ResponseHelper::jsonResponse(false, $e->getMessage(), null, 400);
         } catch (\Throwable $e) {

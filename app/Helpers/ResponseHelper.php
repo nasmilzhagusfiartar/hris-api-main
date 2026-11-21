@@ -12,7 +12,7 @@ class ResponseHelper
 
     public static function jsonResponse($success, $message, $data, $statusCode): JsonResponse
     {
-        if ($statusCode >= 500 && ! config('app.debug') && $message !== self::GENERIC_SERVER_ERROR) {
+        if ($statusCode >= 500 && $statusCode !== 503 && ! config('app.debug') && $message !== self::GENERIC_SERVER_ERROR) {
             Log::error((string) $message, [
                 'user_id' => auth()->id(),
                 'method' => request()?->method(),
