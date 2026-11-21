@@ -19,6 +19,7 @@ use App\Models\TeamMember;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
@@ -205,20 +206,34 @@ class EmployeeProfileRepository implements EmployeeProfileRepositoryInterface
 
     public function create(array $data): EmployeeProfile
     {
-        return DB::transaction(function () use ($data) {
-            $user = $this->createUser($data);
-            $employee = $this->createEmployeeProfile($data, $user->id);
+        $maxAttempts = 3;
 
-            $this->createJobInformation($data, $employee->id);
-            $this->createBankInformation($data, $employee->id);
-            $this->createEmergencyContacts($data, $employee->id);
-            $this->manageTeamMembership($employee->id, $data['team_id'] ?? null);
+        for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
+            try {
+                return DB::transaction(function () use ($data) {
+                    $user = $this->createUser($data);
+                    $employee = $this->createEmployeeProfile($data, $user->id);
 
-            // Clear statistics cache
-            $this->clearEmployeeStatisticsCache();
+                    $this->createJobInformation($data, $employee->id);
+                    $this->createBankInformation($data, $employee->id);
+                    $this->createEmergencyContacts($data, $employee->id);
+                    $this->manageTeamMembership($employee->id, $data['team_id'] ?? null);
 
-            return $employee->load(['user', 'jobInformation', 'bankInformation', 'emergencyContacts']);
-        });
+                    // Clear statistics cache
+                    $this->clearEmployeeStatisticsCache();
+
+                    return $employee->load(['user', 'jobInformation', 'bankInformation', 'emergencyContacts']);
+                });
+            } catch (QueryException $e) {
+                if ($attempt < $maxAttempts && $this->isEmployeeCodeUniqueViolation($e)) {
+                    continue;
+                }
+
+                throw $e;
+            }
+        }
+
+        throw new \RuntimeException('Failed to generate unique employee code after multiple attempts.');
     }
 
     public function update(string $id, array $data): EmployeeProfile
@@ -341,19 +356,30 @@ class EmployeeProfileRepository implements EmployeeProfileRepositoryInterface
     {
         $year = now()->format('Y');
         $month = now()->format('m');
+        $prefix = "EMP{$year}{$month}";
 
-        $lastEmployee = EmployeeProfile::where('code', 'like', "EMP{$year}{$month}%")
-            ->orderBy('code', 'desc')
+        $lastEmployee = EmployeeProfile::withTrashed()
+            ->where('code', 'like', "{$prefix}%")
+            ->orderByDesc('code')
+            ->lockForUpdate()
             ->first();
 
-        if ($lastEmployee) {
-            $lastSequence = (int) substr($lastEmployee->code, -4);
-            $newSequence = $lastSequence + 1;
-        } else {
-            $newSequence = 1;
+        $lastSequence = $lastEmployee ? (int) substr($lastEmployee->code, -4) : 0;
+
+        return sprintf('%s%04d', $prefix, $lastSequence + 1);
+    }
+
+    private function isEmployeeCodeUniqueViolation(QueryException $e): bool
+    {
+        $sqlState = (string) ($e->errorInfo[0] ?? $e->getCode());
+        if ($sqlState !== '23000') {
+            return false;
         }
 
-        return sprintf('EMP%s%s%04d', $year, $month, $newSequence);
+        $message = $e->getMessage();
+
+        return str_contains($message, 'employee_profiles_code_unique')
+            || str_contains($message, 'employee_profiles.code');
     }
 
     private function updateUser(int $userId, array $data): void
