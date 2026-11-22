@@ -25,7 +25,7 @@ class StoreController extends Controller implements HasMiddleware
     public static function middleware(): array
     {
         return [
-            new Middleware(PermissionMiddleware::using(['store-list|store-create|store-edit|store-delete']), only: ['index', 'getAllPaginated', 'show']),
+            new Middleware(PermissionMiddleware::using(['store-list|store-create|store-edit|store-delete|payroll-list|team-list']), only: ['index', 'getAllPaginated', 'show']),
             new Middleware(PermissionMiddleware::using(['store-create']), only: ['store']),
             new Middleware(PermissionMiddleware::using(['store-edit']), only: ['update']),
             new Middleware(PermissionMiddleware::using(['store-delete']), only: ['destroy']),

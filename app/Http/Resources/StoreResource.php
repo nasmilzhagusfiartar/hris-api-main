@@ -29,6 +29,9 @@ class StoreResource extends JsonResource
             'teams_count' => (int) ($this->teams_count ?? ($this->relationLoaded('teams') ? $this->teams->count() : 0)),
             'teams' => TeamResource::collection($this->whenLoaded('teams')),
             'active_employees_count' => (int) ($this->active_job_informations_count ?? 0),
+            'internal_employees_count' => $this->when(isset($this->internal_employees_count), (int) ($this->internal_employees_count ?? 0)),
+            'vendor_employees_count' => $this->when(isset($this->vendor_employees_count), (int) ($this->vendor_employees_count ?? 0)),
+            'job_title_breakdown' => $this->when(isset($this->job_title_breakdown), $this->job_title_breakdown ?? []),
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
         ];

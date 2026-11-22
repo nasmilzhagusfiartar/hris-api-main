@@ -73,6 +73,44 @@ class StoreRepository implements StoreRepositoryInterface
             }
         }
 
+        // Compute active employee breakdown (internal vs vendor & by job title)
+        $activeJobs = \App\Models\JobInformation::query()
+            ->where('store_id', $store->id)
+            ->whereNotIn('status', \App\Enums\JobStatus::inactiveValues())
+            ->whereHas('employee', function ($eq) {
+                $eq->whereNull('employee_profiles.deleted_at')
+                    ->whereHas('user', fn ($uq) => $uq->where('is_active', true));
+            })
+            ->get(['job_title', 'employment_type']);
+
+        $internalCount = 0;
+        $vendorCount = 0;
+        $titleCounts = [];
+
+        foreach ($activeJobs as $job) {
+            $empType = $job->employment_type instanceof \BackedEnum
+                ? strtolower($job->employment_type->value)
+                : strtolower((string) $job->employment_type);
+            if ($empType === 'vendor') {
+                $vendorCount++;
+            } else {
+                $internalCount++;
+            }
+
+            $title = trim((string) ($job->job_title ?: 'Unassigned'));
+            $titleCounts[$title] = ($titleCounts[$title] ?? 0) + 1;
+        }
+
+        arsort($titleCounts);
+        $breakdown = [];
+        foreach ($titleCounts as $title => $count) {
+            $breakdown[] = ['job_title' => $title, 'count' => $count];
+        }
+
+        $store->setAttribute('internal_employees_count', $internalCount);
+        $store->setAttribute('vendor_employees_count', $vendorCount);
+        $store->setAttribute('job_title_breakdown', $breakdown);
+
         return $store;
     }
 

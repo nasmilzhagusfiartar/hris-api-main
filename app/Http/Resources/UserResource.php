@@ -41,6 +41,8 @@ class UserResource extends JsonResource
             'is_vendor' => $this->isVendorEmployee(),
             'vendor_name' => $this->employeeProfile?->jobInformation?->vendor_name,
             'store_name' => $this->employeeProfile?->jobInformation?->store?->name,
+            'is_store_head' => $this->isStoreHead(),
+            'headed_store_id' => $this->isStoreHead() ? ($this->managedStoreIds()[0] ?? null) : null,
             'created_at' => $this->created_at,
         ];
     }
