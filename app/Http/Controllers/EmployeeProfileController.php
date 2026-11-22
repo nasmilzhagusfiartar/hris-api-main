@@ -179,10 +179,11 @@ class EmployeeProfileController extends Controller implements HasMiddleware
     /**
      * Get employee statistics
      */
-    public function getStatistics(): JsonResponse
+    public function getStatistics(Request $request): JsonResponse
     {
         try {
-            $statistics = $this->employeeProfileRepository->getStatistics();
+            $storeId = $request->query('store_id') ? (int) $request->query('store_id') : null;
+            $statistics = $this->employeeProfileRepository->getStatistics($storeId);
 
             return ResponseHelper::jsonResponse(true, 'Employee statistics fetched successfully', $statistics, 200);
         } catch (\Throwable $e) {

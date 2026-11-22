@@ -616,63 +616,109 @@ class EmployeeProfileRepository implements EmployeeProfileRepositoryInterface
         );
     }
 
-    public function getStatistics(): array
+    public function getStatistics(?int $storeId = null): array
     {
-        $cacheKey = CacheConstants::CACHE_KEY_EMPLOYEE_STATISTICS.now()->format('Y-m-d-H');
+        $authUser = auth()->user();
+        $managedStoreIds = ($authUser && $authUser->isStoreHead()) ? $authUser->managedStoreIds() : null;
 
-        return cache()->remember($cacheKey, CacheConstants::ONE_HOUR, function () {
-            $lastWeekEnd = now()->subWeek()->endOfWeek();
-            $currentMonth = now()->month;
-            $currentYear = now()->year;
+        $currentMonth = now()->month;
+        $currentYear = now()->year;
+        $lastWeekEnd = now()->subWeek()->endOfWeek();
 
-            // Single optimized query for employee counts
-            $employeeStats = DB::table('employee_profiles')
-                ->leftJoin('job_information', 'employee_profiles.id', '=', 'job_information.employee_id')
-                ->selectRaw("
-                    COUNT(DISTINCT employee_profiles.id) as total,
-                    COUNT(DISTINCT CASE
-                        WHEN MONTH(employee_profiles.created_at) = ?
-                        AND YEAR(employee_profiles.created_at) = ?
-                        THEN employee_profiles.id
-                    END) as added_this_month,
-                    COUNT(DISTINCT CASE
-                        WHEN job_information.status = 'active'
-                        THEN employee_profiles.id
-                    END) as active,
-                    COUNT(DISTINCT CASE
-                        WHEN job_information.status = 'active'
-                        AND employee_profiles.created_at <= ?
-                        THEN employee_profiles.id
-                    END) as active_last_week,
-                    COUNT(DISTINCT CASE
-                        WHEN job_information.status = 'on_leave'
-                        THEN employee_profiles.id
-                    END) as on_leave,
-                    COUNT(DISTINCT CASE
-                        WHEN job_information.status = 'on_leave'
-                        AND employee_profiles.created_at <= ?
-                        THEN employee_profiles.id
-                    END) as on_leave_last_week,
-                    AVG(job_information.monthly_salary) as average_salary
-                ", [
-                    $currentMonth,
-                    $currentYear,
-                    $lastWeekEnd,
-                    $lastWeekEnd,
-                ])
-                ->first();
+        $query = DB::table('employee_profiles')
+            ->join('users', 'users.id', '=', 'employee_profiles.user_id')
+            ->join('job_information', 'job_information.employee_id', '=', 'employee_profiles.id')
+            ->whereNull('employee_profiles.deleted_at')
+            ->whereNull('users.deleted_at')
+            ->whereNull('job_information.deleted_at')
+            ->where('users.is_active', true)
+            ->whereIn('job_information.status', ['active', 'on_leave'])
+            ->whereNotExists(function ($q) {
+                $q->select(DB::raw(1))
+                    ->from('model_has_roles')
+                    ->join('roles', 'roles.id', '=', 'model_has_roles.role_id')
+                    ->whereColumn('model_has_roles.model_id', 'users.id')
+                    ->where('model_has_roles.model_type', \App\Models\User::class)
+                    ->where('roles.name', 'super-admin');
+            });
 
-            return [
-                'total' => (int) $employeeStats->total,
-                'added_this_month' => (int) $employeeStats->added_this_month,
-                'active' => (int) $employeeStats->active,
-                'active_change' => (int) ($employeeStats->active - $employeeStats->active_last_week),
-                'on_leave' => (int) $employeeStats->on_leave,
-                'on_leave_change' => (int) ($employeeStats->on_leave - $employeeStats->on_leave_last_week),
-                'average_salary' => round((float) ($employeeStats->average_salary ?? 0), 2),
-                'new_employees' => (int) $employeeStats->added_this_month,
-            ];
-        });
+        if ($managedStoreIds !== null) {
+            $query->whereIn('job_information.store_id', $managedStoreIds);
+        } elseif ($storeId !== null) {
+            $query->where('job_information.store_id', $storeId);
+        }
+
+        $rows = $query->get([
+            'employee_profiles.id',
+            'employee_profiles.created_at',
+            'job_information.status',
+            'job_information.employment_type',
+            'job_information.monthly_salary',
+            'job_information.start_date',
+        ]);
+
+        $total = $rows->count();
+        $vendorCount = 0;
+        $internalCount = 0;
+        $activeCount = 0;
+        $activeLastWeek = 0;
+        $onLeaveCount = 0;
+        $onLeaveLastWeek = 0;
+        $newHiresCount = 0;
+        $salarySum = 0.0;
+        $salaryCount = 0;
+
+        foreach ($rows as $row) {
+            $empType = strtolower((string) ($row->employment_type ?? ''));
+            $isVendor = $empType === 'vendor';
+            if ($isVendor) {
+                $vendorCount++;
+            } else {
+                $internalCount++;
+                $salary = (float) ($row->monthly_salary ?? 0);
+                if ($salary > 0) {
+                    $salarySum += $salary;
+                    $salaryCount++;
+                }
+            }
+
+            $status = strtolower((string) ($row->status ?? ''));
+            $createdAt = $row->created_at ? \Carbon\Carbon::parse($row->created_at) : null;
+            if ($status === 'active') {
+                $activeCount++;
+                if ($createdAt && $createdAt->lte($lastWeekEnd)) {
+                    $activeLastWeek++;
+                }
+            } elseif ($status === 'on_leave') {
+                $onLeaveCount++;
+                if ($createdAt && $createdAt->lte($lastWeekEnd)) {
+                    $onLeaveLastWeek++;
+                }
+            }
+
+            if ($row->start_date) {
+                $startDate = \Carbon\Carbon::parse($row->start_date);
+                if ($startDate->month === $currentMonth && $startDate->year === $currentYear) {
+                    $newHiresCount++;
+                }
+            }
+        }
+
+        $averageSalary = $salaryCount > 0 ? round($salarySum / $salaryCount, 2) : 0.0;
+
+        return [
+            'total' => $total,
+            'internal_count' => $internalCount,
+            'vendor_count' => $vendorCount,
+            'added_this_month' => $newHiresCount,
+            'new_employees' => $newHiresCount,
+            'period_label' => 'This month: '.now()->format('M Y'),
+            'active' => $activeCount,
+            'active_change' => $activeCount - $activeLastWeek,
+            'on_leave' => $onLeaveCount,
+            'on_leave_change' => $onLeaveCount - $onLeaveLastWeek,
+            'average_salary' => $averageSalary,
+        ];
     }
 
     /**

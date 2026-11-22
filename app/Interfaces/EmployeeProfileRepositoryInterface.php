@@ -48,7 +48,7 @@ interface EmployeeProfileRepositoryInterface
         string $id
     );
 
-    public function getStatistics();
+    public function getStatistics(?int $storeId = null);
 
     public function getPerformanceStatistics(string $employeeId);
 
