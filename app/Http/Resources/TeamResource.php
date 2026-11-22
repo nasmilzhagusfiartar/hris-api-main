@@ -25,6 +25,17 @@ class TeamResource extends JsonResource
 
         return [
             'id' => $this->id,
+            'store_id' => $this->store_id,
+            'store' => $this->whenLoaded('store', function () {
+                return $this->store ? [
+                    'id' => $this->store->id,
+                    'code' => $this->store->code,
+                    'type' => $this->store->type,
+                    'name' => $this->store->name,
+                    'brand' => $this->store->brand,
+                    'city' => $this->store->city,
+                ] : null;
+            }),
             'name' => $this->name,
             'expected_size' => $this->expected_size,
             'description' => $this->description,

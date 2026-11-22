@@ -24,14 +24,22 @@ class TeamRepository implements TeamRepositoryInterface
         ?string $status,
         ?string $department,
         ?int $limit,
-        bool $execute
+        bool $execute,
+        ?int $storeId = null
     ): Builder|Collection {
+        $authUser = auth()->user();
+        $managedStoreIds = ($authUser && $authUser->isStoreHead()) ? $authUser->managedStoreIds() : null;
+
         $query = Team::with([
+            'store',
             'leader',
             'leader.employeeProfile',
             'leader.employeeProfile.jobInformation',
         ])
-            ->where(function ($query) use ($search, $leaderId, $status, $department) {
+            ->when($managedStoreIds !== null, function ($q) use ($managedStoreIds) {
+                $q->whereIn('store_id', $managedStoreIds);
+            })
+            ->where(function ($query) use ($search, $leaderId, $status, $department, $storeId) {
                 if ($search) {
                     $query->search($search);
                 }
@@ -46,6 +54,10 @@ class TeamRepository implements TeamRepositoryInterface
 
                 if ($department) {
                     $query->where('department', $department);
+                }
+
+                if ($storeId) {
+                    $query->where('store_id', $storeId);
                 }
             })->withCount('members')->withCount('projects')->orderByDesc('created_at');
 
@@ -65,7 +77,8 @@ class TeamRepository implements TeamRepositoryInterface
         ?int $leaderId,
         ?string $status,
         ?string $department,
-        ?int $rowPerPage
+        ?int $rowPerPage,
+        ?int $storeId = null
     ): LengthAwarePaginator {
         $query = $this->getAll(
             $search,
@@ -73,7 +86,8 @@ class TeamRepository implements TeamRepositoryInterface
             $status,
             $department,
             null,
-            false
+            false,
+            $storeId
         );
 
         return $query->paginate($rowPerPage);
@@ -83,6 +97,7 @@ class TeamRepository implements TeamRepositoryInterface
         string $id
     ): Team {
         $team = Team::with([
+            'store',
             'leader',
             'leader.employeeProfile',
             'leader.employeeProfile.jobInformation',
@@ -91,6 +106,14 @@ class TeamRepository implements TeamRepositoryInterface
             'members.employee.user',
             'members.employee.jobInformation',
         ])->withCount(['members', 'projects'])->findOrFail($id);
+
+        $authUser = auth()->user();
+        if ($authUser && $authUser->isStoreHead()) {
+            $managedStoreIds = $authUser->managedStoreIds();
+            if (! in_array((int) $team->store_id, $managedStoreIds, true)) {
+                throw new \Symfony\Component\HttpKernel\Exception\HttpException(403, 'You do not have permission to access teams outside your store.');
+            }
+        }
 
         $team->setAttribute('recent_activities', $this->buildRecentActivities($team));
 
@@ -229,7 +252,7 @@ class TeamRepository implements TeamRepositoryInterface
             // Clear caches
             $this->clearTeamCaches($team->id);
 
-            return $team->load(['leader', 'members']);
+            return $team->load(['store', 'leader', 'members']);
         });
     }
 
@@ -289,7 +312,7 @@ class TeamRepository implements TeamRepositoryInterface
             // Clear caches
             $this->clearTeamCaches($team->id);
 
-            return $team->fresh(['leader', 'members']);
+            return $team->fresh(['store', 'leader', 'members']);
         });
     }
 
@@ -491,6 +514,8 @@ class TeamRepository implements TeamRepositoryInterface
     public function addMember(string $teamId, int $employeeId): TeamMember
     {
         return DB::transaction(function () use ($teamId, $employeeId) {
+            $team = Team::findOrFail($teamId);
+
             // Check if member already exists and is active
             $existingMember = TeamMember::where('team_id', $teamId)
                 ->where('employee_id', $employeeId)
@@ -499,6 +524,23 @@ class TeamRepository implements TeamRepositoryInterface
 
             if ($existingMember) {
                 throw new \Exception('Employee is already a member of this team');
+            }
+
+            // Single active location rule: end active memberships in teams at OTHER locations
+            if ($team->store_id !== null) {
+                TeamMember::where('employee_id', $employeeId)
+                    ->whereNull('left_at')
+                    ->whereHas('team', function ($q) use ($team) {
+                        $q->where('store_id', '!=', $team->store_id)
+                            ->orWhereNull('store_id');
+                    })
+                    ->update(['left_at' => now()]);
+
+                \App\Models\JobInformation::where('employee_id', $employeeId)
+                    ->update([
+                        'store_id' => $team->store_id,
+                        'team_id' => $team->id,
+                    ]);
             }
 
             // Add new member
@@ -516,7 +558,7 @@ class TeamRepository implements TeamRepositoryInterface
             // Clear caches
             $this->clearTeamCaches($teamId);
 
-            return $member->load(['employee', 'employee.user', 'employee.jobInformation']);
+            return $member->load(['employee', 'employee.user', 'employee.jobInformation.store']);
         });
     }
 

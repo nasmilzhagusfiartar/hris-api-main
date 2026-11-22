@@ -37,6 +37,15 @@ class ReportRepository implements ReportRepositoryInterface
         }
 
         if ($user->hasRole('manager')) {
+            if ($user->isStoreHead()) {
+                $managedStoreIds = $user->managedStoreIds();
+
+                return EmployeeProfile::query()
+                    ->whereHas('jobInformation', fn (Builder $jq) => $jq->whereIn('store_id', $managedStoreIds))
+                    ->pluck('id')
+                    ->all();
+            }
+
             $managedTeamIds = Team::query()
                 ->where('team_lead_id', $user->id)
                 ->pluck('id')

@@ -15,11 +15,13 @@ class TeamDto
         public readonly string $status = 'active',
         public readonly ?int $team_lead_id = null,
         public readonly array $responsibilities = [],
+        public readonly ?int $store_id = null,
     ) {}
 
     public function toArray(): array
     {
         return [
+            'store_id' => $this->store_id,
             'name' => $this->name,
             'expected_size' => $this->expected_size,
             'description' => $this->description,
@@ -42,6 +44,7 @@ class TeamDto
             status: $data['status'] ?? 'active',
             team_lead_id: isset($data['team_lead_id']) && $data['team_lead_id'] !== '' ? (int) $data['team_lead_id'] : null,
             responsibilities: is_array($data['responsibilities'] ?? null) ? array_values($data['responsibilities']) : [],
+            store_id: isset($data['store_id']) && $data['store_id'] !== '' ? (int) $data['store_id'] : null,
         );
     }
 
@@ -63,6 +66,10 @@ class TeamDto
             ? (is_array($data['responsibilities']) ? array_values($data['responsibilities']) : [])
             : (is_array($existingTeam->responsibilities) ? $existingTeam->responsibilities : []);
 
+        $storeId = array_key_exists('store_id', $data)
+            ? ($data['store_id'] !== null && $data['store_id'] !== '' ? (int) $data['store_id'] : null)
+            : ($existingTeam->store_id !== null ? (int) $existingTeam->store_id : null);
+
         return new self(
             name: $data['name'] ?? $existingTeam->name,
             expected_size: array_key_exists('expected_size', $data)
@@ -74,6 +81,7 @@ class TeamDto
             status: $data['status'] ?? $existingStatus,
             team_lead_id: $teamLeadId,
             responsibilities: $responsibilities,
+            store_id: $storeId,
         );
     }
 }

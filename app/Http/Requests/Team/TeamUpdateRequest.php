@@ -5,6 +5,7 @@ namespace App\Http\Requests\Team;
 use App\Enums\Department;
 use App\Enums\TeamStatus;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class TeamUpdateRequest extends FormRequest
 {
@@ -22,6 +23,10 @@ class TeamUpdateRequest extends FormRequest
             $this->merge(['team_lead_id' => null]);
         }
 
+        if ($this->has('department') && $this->input('department') === '') {
+            $this->merge(['department' => null]);
+        }
+
         if ($this->has('remove_icon')) {
             $this->merge([
                 'remove_icon' => filter_var($this->input('remove_icon'), FILTER_VALIDATE_BOOLEAN),
@@ -31,11 +36,26 @@ class TeamUpdateRequest extends FormRequest
 
     public function rules(): array
     {
+        $team = $this->route('team');
+        $teamId = $team instanceof \App\Models\Team ? $team->id : $team;
+        $effectiveStoreId = $this->input('store_id', $team instanceof \App\Models\Team ? $team->store_id : null);
+
         return [
-            'name' => ['sometimes', 'required', 'string', 'max:255'],
+            'store_id' => ['sometimes', 'required', 'integer', 'exists:stores,id'],
+            'name' => [
+                'sometimes',
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('teams', 'name')
+                    ->where(function ($query) use ($effectiveStoreId) {
+                        return $query->where('store_id', $effectiveStoreId)->whereNull('deleted_at');
+                    })
+                    ->ignore($teamId),
+            ],
             'expected_size' => ['nullable', 'integer', 'min:1'],
             'description' => ['nullable', 'string'],
-            'icon' => ['sometimes', 'nullable', 'file', 'mimes:jpg,jpeg,png,webp,svg', 'max:2048'],
+            'icon' => ['sometimes', 'nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'remove_icon' => ['sometimes', 'boolean'],
             'department' => ['sometimes', 'nullable', 'string', 'in:'.implode(',', array_column(Department::cases(), 'value'))],
             'status' => ['nullable', 'string', 'in:'.implode(',', array_column(TeamStatus::cases(), 'value'))],
@@ -45,17 +65,10 @@ class TeamUpdateRequest extends FormRequest
         ];
     }
 
-    public function attributes()
+    public function messages(): array
     {
         return [
-            'name' => 'Team Name',
-            'expected_size' => 'Expected Team Size',
-            'description' => 'Team Description',
-            'icon' => 'Team Icon',
-            'department' => 'Department',
-            'status' => 'Status',
-            'team_lead_id' => 'Team Lead',
-            'responsibilities' => 'Responsibilities',
+            'name.unique' => 'A team with this name already exists in the selected location.',
         ];
     }
 }

@@ -102,6 +102,8 @@ class StoreController extends Controller implements HasMiddleware
             return ResponseHelper::jsonResponse(true, 'Store Retrieved Successfully', new StoreResource($store), 200);
         } catch (ModelNotFoundException $e) {
             return ResponseHelper::jsonResponse(false, 'Store Not Found', null, 404);
+        } catch (HttpException $e) {
+            return ResponseHelper::jsonResponse(false, $e->getMessage(), null, $e->getStatusCode());
         } catch (\Throwable $e) {
             return ResponseHelper::serverError($e);
         }
@@ -115,6 +117,8 @@ class StoreController extends Controller implements HasMiddleware
             return ResponseHelper::jsonResponse(true, 'Store Updated Successfully', new StoreResource($store), 200);
         } catch (ModelNotFoundException $e) {
             return ResponseHelper::jsonResponse(false, 'Store Not Found', null, 404);
+        } catch (HttpException $e) {
+            return ResponseHelper::jsonResponse(false, $e->getMessage(), null, $e->getStatusCode());
         } catch (\Throwable $e) {
             return ResponseHelper::serverError($e);
         }

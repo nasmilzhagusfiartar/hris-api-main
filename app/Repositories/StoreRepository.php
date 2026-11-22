@@ -4,6 +4,7 @@ namespace App\Repositories;
 
 use App\Interfaces\StoreRepositoryInterface;
 use App\Models\Store;
+use App\Models\Team;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -20,8 +21,13 @@ class StoreRepository implements StoreRepositoryInterface
         ?int $limit,
         bool $execute
     ): Builder|Collection {
+        $authUser = auth()->user();
+        $managedStoreIds = ($authUser && $authUser->isStoreHead()) ? $authUser->managedStoreIds() : null;
+
         $query = Store::query()
-            ->withCount('activeJobInformations')
+            ->when($managedStoreIds !== null, fn (Builder $q) => $q->whereIn('id', $managedStoreIds))
+            ->with(['head', 'teams' => fn ($q) => $q->withCount('members')->orderBy('name')])
+            ->withCount(['activeJobInformations', 'teams'])
             ->when($search, function (Builder $q) use ($search) {
                 $q->where(function (Builder $sub) use ($search) {
                     $sub->where('name', 'like', '%'.$search.'%')
@@ -33,6 +39,7 @@ class StoreRepository implements StoreRepositoryInterface
             ->when($brand, fn (Builder $q) => $q->where('brand', $brand))
             ->when($city, fn (Builder $q) => $q->where('city', 'like', '%'.$city.'%'))
             ->when($isActive !== null, fn (Builder $q) => $q->where('is_active', $isActive))
+            ->orderByRaw("CASE WHEN type = 'head_office' THEN 0 ELSE 1 END")
             ->orderBy('name');
 
         if ($limit) {
@@ -55,39 +62,71 @@ class StoreRepository implements StoreRepositoryInterface
 
     public function getById(string|int $id): Store
     {
-        return Store::withCount('activeJobInformations')->findOrFail($id);
+        $store = Store::with(['head', 'teams' => fn ($q) => $q->with('leader')->withCount('members')->orderBy('name')])
+            ->withCount(['activeJobInformations', 'teams'])
+            ->findOrFail($id);
+
+        $authUser = auth()->user();
+        if ($authUser && $authUser->isStoreHead()) {
+            if (! in_array((int) $store->id, $authUser->managedStoreIds(), true)) {
+                throw new HttpException(403, 'You do not have permission to access other stores.');
+            }
+        }
+
+        return $store;
     }
 
     public function create(array $data): Store
     {
         return DB::transaction(function () use ($data) {
+            $type = $data['type'] ?? Store::TYPE_STORE;
+
             $store = Store::create([
                 'code' => $data['code'] ?? null,
+                'type' => $type,
                 'name' => $data['name'],
                 'brand' => $data['brand'],
                 'city' => $data['city'],
                 'address' => $data['address'] ?? null,
                 'is_active' => $data['is_active'] ?? true,
+                'head_user_id' => $data['head_user_id'] ?? null,
             ]);
 
-            return $store->loadCount('activeJobInformations');
+            // Auto-create default store teams for new Store locations (NOT for Head Office)
+            if ($type === Store::TYPE_STORE) {
+                foreach (Store::DEFAULT_STORE_TEAMS as $teamDef) {
+                    Team::create([
+                        'store_id' => $store->id,
+                        'name' => $teamDef['name'],
+                        'description' => $teamDef['description'],
+                        'status' => 'active',
+                        'expected_size' => 10,
+                        'department' => null,
+                        'responsibilities' => [],
+                    ]);
+                }
+            }
+
+            return $store->load(['head', 'teams' => fn ($q) => $q->withCount('members')->orderBy('name')])
+                ->loadCount(['activeJobInformations', 'teams']);
         });
     }
 
     public function update(string|int $id, array $data): Store
     {
         return DB::transaction(function () use ($id, $data) {
-            $store = $this->getById($id);
+            $store = Store::findOrFail($id);
             $store->update($data);
 
-            return $store->fresh()->loadCount('activeJobInformations');
+            return $store->fresh(['head', 'teams' => fn ($q) => $q->withCount('members')->orderBy('name')])
+                ->loadCount(['activeJobInformations', 'teams']);
         });
     }
 
     public function delete(string|int $id): bool
     {
         return DB::transaction(function () use ($id) {
-            $store = $this->getById($id);
+            $store = Store::findOrFail($id);
 
             $hasActiveEmployees = $store->activeJobInformations()->exists();
             if ($hasActiveEmployees) {

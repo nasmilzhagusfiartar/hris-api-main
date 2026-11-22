@@ -10,7 +10,8 @@ interface TeamRepositoryInterface
         ?string $status,
         ?string $department,
         ?int $limit,
-        bool $execute
+        bool $execute,
+        ?int $storeId = null
     );
 
     public function getAllPaginated(
@@ -18,7 +19,8 @@ interface TeamRepositoryInterface
         ?int $leaderId,
         ?string $status,
         ?string $department,
-        ?int $rowPerPage
+        ?int $rowPerPage,
+        ?int $storeId = null
     );
 
     public function getById(

@@ -13,6 +13,7 @@ class Team extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
+        'store_id',
         'name',
         'expected_size',
         'description',
@@ -35,6 +36,11 @@ class Team extends Model
     public function scopeSearch($query, $search)
     {
         return $query->where('name', 'like', '%'.$search.'%');
+    }
+
+    public function store()
+    {
+        return $this->belongsTo(Store::class, 'store_id');
     }
 
     public function leader()

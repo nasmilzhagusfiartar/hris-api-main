@@ -119,6 +119,8 @@ class LeaveRequestController extends Controller implements HasMiddleware
             return ResponseHelper::jsonResponse(true, 'Leave Request Retrieved Successfully', new LeaveRequestResource($leaveRequest), 200);
         } catch (ModelNotFoundException $e) {
             return ResponseHelper::jsonResponse(false, 'Leave Request Not Found', null, 404);
+        } catch (\Symfony\Component\HttpKernel\Exception\HttpException $e) {
+            return ResponseHelper::jsonResponse(false, $e->getMessage(), null, $e->getStatusCode());
         } catch (\Throwable $e) {
             return ResponseHelper::serverError($e);
         }
@@ -132,6 +134,8 @@ class LeaveRequestController extends Controller implements HasMiddleware
             return ResponseHelper::jsonResponse(true, 'Leave Request Approved Successfully', new LeaveRequestResource($leaveRequest), 200);
         } catch (ModelNotFoundException $e) {
             return ResponseHelper::jsonResponse(false, 'Leave Request Not Found', null, 404);
+        } catch (\Symfony\Component\HttpKernel\Exception\HttpException $e) {
+            return ResponseHelper::jsonResponse(false, $e->getMessage(), null, $e->getStatusCode());
         } catch (\Throwable $e) {
             return ResponseHelper::serverError($e);
         }
@@ -145,6 +149,8 @@ class LeaveRequestController extends Controller implements HasMiddleware
             return ResponseHelper::jsonResponse(true, 'Leave Request Rejected Successfully', new LeaveRequestResource($leaveRequest), 200);
         } catch (ModelNotFoundException $e) {
             return ResponseHelper::jsonResponse(false, 'Leave Request Not Found', null, 404);
+        } catch (\Symfony\Component\HttpKernel\Exception\HttpException $e) {
+            return ResponseHelper::jsonResponse(false, $e->getMessage(), null, $e->getStatusCode());
         } catch (\Throwable $e) {
             return ResponseHelper::serverError($e);
         }

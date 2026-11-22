@@ -90,6 +90,14 @@ class EmployeeProfileRepository implements EmployeeProfileRepositoryInterface
         ?string $storeId = null,
         ?string $vendorName = null
     ): void {
+        $authUser = auth()->user();
+        if ($authUser && $authUser->isStoreHead()) {
+            $managedStoreIds = $authUser->managedStoreIds();
+            $query->whereHas('jobInformation', function ($q) use ($managedStoreIds) {
+                $q->whereIn('store_id', $managedStoreIds);
+            });
+        }
+
         if ($status) {
             $query->whereHas('jobInformation', function ($q) use ($status) {
                 $q->where('status', $status);
@@ -174,7 +182,7 @@ class EmployeeProfileRepository implements EmployeeProfileRepositoryInterface
     public function getById(
         string $id
     ): EmployeeProfile {
-        return EmployeeProfile::with([
+        $employee = EmployeeProfile::with([
             'user',
             'user.roles',
             'jobInformation.store',
@@ -187,6 +195,17 @@ class EmployeeProfileRepository implements EmployeeProfileRepositoryInterface
             'educations',
         ])
             ->findOrFail($id);
+
+        $authUser = auth()->user();
+        if ($authUser && $authUser->isStoreHead()) {
+            $managedStoreIds = $authUser->managedStoreIds();
+            $empStoreId = $employee->jobInformation?->store_id;
+            if ($empStoreId === null || ! in_array((int) $empStoreId, $managedStoreIds, true)) {
+                throw new HttpException(403, 'You do not have permission to view employees outside your store.');
+            }
+        }
+
+        return $employee;
     }
 
     public function getMyProfile(): EmployeeProfile

@@ -21,9 +21,17 @@ class LeaveRequestRepository implements LeaveRequestRepositoryInterface
         ?int $limit,
         bool $execute
     ) {
+        $authUser = Auth::user();
+        $managedStoreIds = ($authUser && $authUser->isStoreHead()) ? $authUser->managedStoreIds() : null;
+
         $query = LeaveRequest::with(['employee.user', 'approver.user'])
             ->whereDoesntHave('employee.jobInformation', function ($jq) {
                 $jq->where('employment_type', 'vendor');
+            })
+            ->when($managedStoreIds !== null, function ($q) use ($managedStoreIds) {
+                $q->whereHas('employee.jobInformation', function ($jq) use ($managedStoreIds) {
+                    $jq->whereIn('store_id', $managedStoreIds);
+                });
             })
             ->where(function ($query) use ($search) {
                 if ($search) {
@@ -96,10 +104,11 @@ class LeaveRequestRepository implements LeaveRequestRepositoryInterface
     {
         return DB::transaction(function () use ($id) {
             $leaveRequest = $this->getById($id);
+            $this->assertCanManageLeaveRequest($leaveRequest);
 
             $data = [
                 'status' => 'approved',
-                'approved_by' => Auth::user()->employeeProfile->id,
+                'approved_by' => Auth::user()->employeeProfile?->id,
             ];
 
             $leaveRequestDto = LeaveRequestDto::fromArrayForUpdate($data, $leaveRequest);
@@ -117,10 +126,11 @@ class LeaveRequestRepository implements LeaveRequestRepositoryInterface
     {
         return DB::transaction(function () use ($id) {
             $leaveRequest = $this->getById($id);
+            $this->assertCanManageLeaveRequest($leaveRequest);
 
             $data = [
                 'status' => 'rejected',
-                'approved_by' => Auth::user()->employeeProfile->id,
+                'approved_by' => Auth::user()->employeeProfile?->id,
             ];
 
             $leaveRequestDto = LeaveRequestDto::fromArrayForUpdate($data, $leaveRequest);
@@ -132,5 +142,23 @@ class LeaveRequestRepository implements LeaveRequestRepositoryInterface
 
             return $leaveRequest;
         });
+    }
+
+    private function assertCanManageLeaveRequest(LeaveRequest $leaveRequest): void
+    {
+        $authUser = Auth::user();
+        if (! $authUser || ! $authUser->isStoreHead()) {
+            return;
+        }
+
+        $managedStoreIds = $authUser->managedStoreIds();
+        $employeeStoreId = $leaveRequest->employee?->jobInformation?->store_id;
+
+        if ($employeeStoreId === null || ! in_array((int) $employeeStoreId, $managedStoreIds, true)) {
+            throw new \Symfony\Component\HttpKernel\Exception\HttpException(
+                403,
+                'You can only approve or reject leave requests for employees in your store.'
+            );
+        }
     }
 }

@@ -40,10 +40,17 @@ class AttendanceRepository implements AttendanceRepositoryInterface
         bool $execute
     ): Builder|Collection {
         $excludedIds = $this->getSecurityEmployeeIds();
+        $authUser = Auth::user();
+        $managedStoreIds = ($authUser && $authUser->isStoreHead()) ? $authUser->managedStoreIds() : null;
 
         $query = Attendance::with(['employee.user', 'employee.jobInformation.team'])
             ->when(! empty($excludedIds), function ($q) use ($excludedIds) {
                 $q->whereNotIn('employee_id', $excludedIds);
+            })
+            ->when($managedStoreIds !== null, function ($q) use ($managedStoreIds) {
+                $q->whereHas('employee.jobInformation', function ($jq) use ($managedStoreIds) {
+                    $jq->whereIn('store_id', $managedStoreIds);
+                });
             })
             ->where(function ($query) use ($search, $date) {
                 if ($search) {

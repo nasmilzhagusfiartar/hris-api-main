@@ -114,4 +114,42 @@ class User extends Authenticatable
     {
         return $this->hasMany(Team::class, 'team_lead_id');
     }
+
+    public function headedStores()
+    {
+        return $this->hasMany(Store::class, 'head_user_id');
+    }
+
+    /**
+     * Store IDs where this user is assigned as Kepala Toko (head_user_id on a 'store' location).
+     *
+     * @return array<int>
+     */
+    public function managedStoreIds(): array
+    {
+        return Store::query()
+            ->where('head_user_id', $this->id)
+            ->where('type', Store::TYPE_STORE)
+            ->where('is_active', true)
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+    }
+
+    /**
+     * True when user is a Store Manager (Kepala Toko) scoped strictly to their headed store(s).
+     * Global roles (super-admin, admin, hr, finance) are never restricted by store.
+     */
+    public function isStoreHead(): bool
+    {
+        if (! $this->hasRole('manager')) {
+            return false;
+        }
+
+        if ($this->hasAnyRole(['super-admin', 'admin', 'hr', 'finance'])) {
+            return false;
+        }
+
+        return count($this->managedStoreIds()) > 0;
+    }
 }

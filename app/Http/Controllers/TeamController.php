@@ -48,7 +48,8 @@ class TeamController extends Controller implements HasMiddleware
                 $request->status,
                 $request->department,
                 $request->limit,
-                true
+                true,
+                $request->store_id ? (int) $request->store_id : null
             );
 
             return ResponseHelper::jsonResponse(true, 'Teams Retrieved Successfully', TeamResource::collection($teams), 200);
@@ -64,6 +65,7 @@ class TeamController extends Controller implements HasMiddleware
             'leader_id' => 'nullable|integer|exists:users,id',
             'status' => 'nullable|string',
             'department' => 'nullable|string',
+            'store_id' => 'nullable|integer|exists:stores,id',
             'row_per_page' => 'required|integer|min:1',
         ]);
 
@@ -73,7 +75,8 @@ class TeamController extends Controller implements HasMiddleware
                 $request['leader_id'] ?? null,
                 $request['status'] ?? null,
                 $request['department'] ?? null,
-                $request['row_per_page']
+                $request['row_per_page'],
+                isset($request['store_id']) ? (int) $request['store_id'] : null
             );
 
             return ResponseHelper::jsonResponse(true, 'Teams Retrieved Successfully', PaginateResource::make($teams, TeamResource::class), 200);
@@ -107,6 +110,8 @@ class TeamController extends Controller implements HasMiddleware
             $team = $this->teamRepository->getById($team->id);
 
             return ResponseHelper::jsonResponse(true, 'Team Retrieved Successfully', new TeamResource($team), 200);
+        } catch (\Symfony\Component\HttpKernel\Exception\HttpException $e) {
+            return ResponseHelper::jsonResponse(false, $e->getMessage(), null, $e->getStatusCode());
         } catch (\Throwable $e) {
             return ResponseHelper::serverError($e);
         }
