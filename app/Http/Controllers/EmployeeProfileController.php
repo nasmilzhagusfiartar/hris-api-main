@@ -131,6 +131,8 @@ class EmployeeProfileController extends Controller implements HasMiddleware
             return ResponseHelper::jsonResponse(true, 'Employee Retrieved Successfully', new EmployeeProfileResource($employee), 200);
         } catch (ModelNotFoundException $e) {
             return ResponseHelper::jsonResponse(false, 'Employee Not Found', null, 404);
+        } catch (HttpException $e) {
+            return ResponseHelper::jsonResponse(false, $e->getMessage(), null, $e->getStatusCode());
         } catch (\Throwable $e) {
             return ResponseHelper::serverError($e);
         }
@@ -199,6 +201,8 @@ class EmployeeProfileController extends Controller implements HasMiddleware
             return ResponseHelper::jsonResponse(true, 'Employee performance statistics fetched successfully', $statistics, 200);
         } catch (ModelNotFoundException $e) {
             return ResponseHelper::jsonResponse(false, 'Employee Not Found', null, 404);
+        } catch (HttpException $e) {
+            return ResponseHelper::jsonResponse(false, $e->getMessage(), null, $e->getStatusCode());
         } catch (\Throwable $e) {
             return ResponseHelper::serverError($e);
         }

@@ -37,6 +37,35 @@ class DashboardRepository implements DashboardRepositoryInterface
      */
     private function getManagerScope($user): array
     {
+        $securityEmpIds = $this->getSecurityEmployeeIds();
+
+        // Kepala Toko (Store Head): scoped to ALL teams & employees in their managed store(s)
+        if ($user && method_exists($user, 'isStoreHead') && $user->isStoreHead()) {
+            $managedStoreIds = $user->managedStoreIds();
+
+            $teamIds = Team::query()
+                ->whereIn('store_id', $managedStoreIds)
+                ->pluck('id')
+                ->all();
+
+            $storeEmpIds = DB::table('job_information')
+                ->join('employee_profiles', 'employee_profiles.id', '=', 'job_information.employee_id')
+                ->join('users', 'users.id', '=', 'employee_profiles.user_id')
+                ->whereIn('job_information.store_id', $managedStoreIds)
+                ->whereNull('employee_profiles.deleted_at')
+                ->where('users.is_active', true)
+                ->whereNotIn('job_information.status', \App\Enums\JobStatus::inactiveValues())
+                ->pluck('job_information.employee_id')
+                ->all();
+
+            $employeeIds = array_values(array_diff(array_unique($storeEmpIds), $securityEmpIds));
+
+            return [
+                'team_ids' => array_values(array_unique($teamIds)),
+                'employee_ids' => $employeeIds,
+            ];
+        }
+
         $teamIds = Team::query()
             ->where('team_lead_id', $user->id)
             ->pluck('id')
@@ -69,7 +98,6 @@ class DashboardRepository implements DashboardRepositoryInterface
             ->pluck('employee_id')
             ->all();
 
-        $securityEmpIds = $this->getSecurityEmployeeIds();
         $employeeIds = array_values(array_diff(array_unique(array_merge($memberEmpIds, $jobEmpIds)), $securityEmpIds));
 
         return [

@@ -36,6 +36,8 @@ class SearchController extends Controller
 
         $user = $request->user();
         $isEmployeeOnly = $user->hasRole('employee') && ! $user->hasAnyRole(['manager', 'admin', 'hr', 'finance']);
+        $isStoreHead = method_exists($user, 'isStoreHead') && $user->isStoreHead();
+        $managedStoreIds = $isStoreHead ? $user->managedStoreIds() : null;
         $employeeProfileId = $user->employeeProfile?->id;
 
         $results = [];
@@ -43,6 +45,9 @@ class SearchController extends Controller
         // 1. Employees (Manager, Admin, HR, or users with employee-list permission)
         if (! $isEmployeeOnly && ($user->hasAnyRole(['manager', 'admin', 'hr']) || $user->can('employee-list'))) {
             $employeesQuery = EmployeeProfile::with(['user', 'jobInformation.team'])
+                ->when($managedStoreIds !== null, function ($q) use ($managedStoreIds) {
+                    $q->whereHas('jobInformation', fn ($jq) => $jq->whereIn('store_id', $managedStoreIds));
+                })
                 ->where(function ($q) use ($keyword) {
                     $q->where('code', 'like', "%{$keyword}%")
                         ->orWhere('phone', 'like', "%{$keyword}%")
@@ -88,6 +93,7 @@ class SearchController extends Controller
         // 2. Teams & Departments
         if (! $isEmployeeOnly && ($user->hasAnyRole(['manager', 'admin', 'hr']) || $user->can('team-list'))) {
             $teamsQuery = Team::with('leader')
+                ->when($managedStoreIds !== null, fn ($q) => $q->whereIn('store_id', $managedStoreIds))
                 ->where(function ($q) use ($keyword) {
                     $q->where('name', 'like', "%{$keyword}%")
                         ->orWhere('department', 'like', "%{$keyword}%")
@@ -105,11 +111,13 @@ class SearchController extends Controller
             $teams = $teamsQuery->limit(10)->get();
 
             foreach ($teams as $team) {
+                $deptVal = $team->department instanceof \BackedEnum ? $team->department->value : (string) $team->department;
+                $statusVal = $team->status instanceof \BackedEnum ? $team->status->value : (string) $team->status;
                 $results[] = [
                     'category' => 'Teams & Departments',
                     'id' => $team->id,
                     'title' => $team->name,
-                    'subtitle' => ucfirst((string) $team->department).' • '.ucfirst((string) $team->status),
+                    'subtitle' => ucfirst($deptVal).' • '.ucfirst($statusVal),
                     'avatar' => $team->icon ? Storage::disk('public')->url($team->icon) : null,
                     'route' => [
                         'name' => 'admin.team.detail',
@@ -144,7 +152,11 @@ class SearchController extends Controller
 
         // 3. Projects
         if ($user->hasAnyRole(['manager', 'admin', 'hr']) || $user->can('project-list') || $isEmployeeOnly) {
-            $projectsQuery = Project::where(function ($q) use ($keyword) {
+            $projectsQuery = Project::query()
+                ->when($managedStoreIds !== null, function ($q) use ($managedStoreIds) {
+                    $q->whereHas('teams', fn ($tq) => $tq->whereIn('store_id', $managedStoreIds));
+                })
+                ->where(function ($q) use ($keyword) {
                 $q->where('name', 'like', "%{$keyword}%")
                     ->orWhere('description', 'like', "%{$keyword}%")
                     ->orWhere('type', 'like', "%{$keyword}%");
@@ -181,6 +193,9 @@ class SearchController extends Controller
 
         // 4. Tasks
         $tasksQuery = ProjectTask::with('project')
+            ->when($managedStoreIds !== null, function ($q) use ($managedStoreIds) {
+                $q->whereHas('assignee.jobInformation', fn ($jq) => $jq->whereIn('store_id', $managedStoreIds));
+            })
             ->where(function ($q) use ($keyword) {
                 $q->where('name', 'like', "%{$keyword}%")
                     ->orWhere('description', 'like', "%{$keyword}%");
@@ -210,6 +225,9 @@ class SearchController extends Controller
         // 5. Leave Requests
         if (! $isEmployeeOnly && ($user->hasAnyRole(['manager', 'admin', 'hr']) || $user->can('leave-request-list') || $user->can('attendance-list'))) {
             $leavesQuery = LeaveRequest::with('employee.user')
+                ->when($managedStoreIds !== null, function ($q) use ($managedStoreIds) {
+                    $q->whereHas('employee.jobInformation', fn ($jq) => $jq->whereIn('store_id', $managedStoreIds));
+                })
                 ->where(function ($q) use ($keyword) {
                     $q->where('leave_type', 'like', "%{$keyword}%")
                         ->orWhere('reason', 'like', "%{$keyword}%")
@@ -225,11 +243,13 @@ class SearchController extends Controller
 
             $leaves = $leavesQuery->orderByDesc('created_at')->limit(10)->get();
             foreach ($leaves as $leave) {
+                $lt = $leave->leave_type instanceof \BackedEnum ? $leave->leave_type->value : (string) $leave->leave_type;
+                $ls = $leave->status instanceof \BackedEnum ? $leave->status->value : (string) $leave->status;
                 $results[] = [
                     'category' => 'Leave Requests',
                     'id' => $leave->id,
-                    'title' => ($leave->employee?->user?->name ?? 'Employee').' — '.ucfirst((string) $leave->leave_type),
-                    'subtitle' => ($leave->start_date?->format('d M Y') ?? '').' • '.ucfirst((string) $leave->status),
+                    'title' => ($leave->employee?->user?->name ?? 'Employee').' — '.ucfirst(str_replace('_', ' ', $lt)),
+                    'subtitle' => ($leave->start_date?->format('d M Y') ?? '').' • '.ucfirst($ls),
                     'route' => ['name' => 'admin.attendances'],
                 ];
             }
@@ -258,6 +278,9 @@ class SearchController extends Controller
         // 6. Attendance
         if (! $isEmployeeOnly && ($user->hasAnyRole(['manager', 'admin', 'hr']) || $user->can('attendance-list'))) {
             $attQuery = Attendance::with('employee.user')
+                ->when($managedStoreIds !== null, function ($q) use ($managedStoreIds) {
+                    $q->whereHas('employee.jobInformation', fn ($jq) => $jq->whereIn('store_id', $managedStoreIds));
+                })
                 ->where(function ($q) use ($keyword) {
                     $q->where('status', 'like', "%{$keyword}%")
                         ->orWhere('notes', 'like', "%{$keyword}%")
@@ -270,10 +293,11 @@ class SearchController extends Controller
                 ->get();
 
             foreach ($attQuery as $att) {
+                $as = $att->status instanceof \BackedEnum ? $att->status->value : (string) $att->status;
                 $results[] = [
                     'category' => 'Attendance',
                     'id' => $att->id,
-                    'title' => ($att->employee?->user?->name ?? 'Employee').' — '.ucfirst((string) $att->status),
+                    'title' => ($att->employee?->user?->name ?? 'Employee').' — '.ucfirst($as),
                     'subtitle' => $att->date?->format('d M Y') ?? '',
                     'route' => ['name' => 'admin.attendances'],
                 ];
