@@ -55,7 +55,7 @@ class TeamUpdateRequest extends FormRequest
             ],
             'expected_size' => ['nullable', 'integer', 'min:1'],
             'description' => ['nullable', 'string'],
-            'icon' => ['sometimes', 'nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+            'icon' => ['sometimes', 'nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048', new \App\Rules\SafeImageFile],
             'remove_icon' => ['sometimes', 'boolean'],
             'department' => ['sometimes', 'nullable', 'string', 'in:'.implode(',', array_column(Department::cases(), 'value'))],
             'status' => ['nullable', 'string', 'in:'.implode(',', array_column(TeamStatus::cases(), 'value'))],

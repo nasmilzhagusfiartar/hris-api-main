@@ -24,7 +24,7 @@ class ProjectStoreRequest extends FormRequest
             'start_date' => ['required', 'date'],
             'end_date' => ['nullable', 'date', 'after:start_date'],
             'description' => ['nullable', 'string'],
-            'photo' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048'],
+            'photo' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048', new \App\Rules\SafeImageFile],
             'budget' => ['nullable', 'numeric', 'min:0'],
             'project_leader_id' => ['nullable', 'exists:employee_profiles,id'],
             'teams' => ['nullable', 'array'],
