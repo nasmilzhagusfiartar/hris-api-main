@@ -37,8 +37,7 @@ class UserRepository implements UserRepositoryInterface
             $user = User::create($userDto->toArray());
 
             if (isset($data['profile_photo'])) {
-                $filename = Str::uuid().'.'.$data['profile_photo']->extension();
-                $profilePhotoPath = $data['profile_photo']->storeAs('users', $filename, 'public');
+                $profilePhotoPath = \App\Helpers\SafeUploadHelper::storeImage($data['profile_photo'], 'users', 'public');
                 $user->update(['profile_photo' => $profilePhotoPath]);
             }
 
@@ -80,8 +79,7 @@ class UserRepository implements UserRepositoryInterface
                     Storage::disk('public')->delete($user->profile_photo);
                 }
 
-                $filename = Str::uuid().'.'.$data['profile_photo']->extension();
-                $profilePhotoPath = $data['profile_photo']->storeAs('users', $filename, 'public');
+                $profilePhotoPath = \App\Helpers\SafeUploadHelper::storeImage($data['profile_photo'], 'users', 'public');
                 $user->update(['profile_photo' => $profilePhotoPath]);
             }
 

@@ -228,8 +228,7 @@ class TeamRepository implements TeamRepositoryInterface
             $team = Team::create($teamDto->toArray());
 
             if (isset($data['icon'])) {
-                $filename = Str::uuid().'.'.$data['icon']->extension();
-                $iconPath = $data['icon']->storeAs('team-icons', $filename, 'public');
+                $iconPath = \App\Helpers\SafeUploadHelper::storeImage($data['icon'], 'team-icons', 'public');
                 $team->update(['icon' => $iconPath]);
             }
 
@@ -276,8 +275,7 @@ class TeamRepository implements TeamRepositoryInterface
                     Storage::disk('public')->delete($oldIcon);
                 }
 
-                $filename = Str::uuid().'.'.$data['icon']->extension();
-                $iconPath = $data['icon']->storeAs('team-icons', $filename, 'public');
+                $iconPath = \App\Helpers\SafeUploadHelper::storeImage($data['icon'], 'team-icons', 'public');
                 $team->update(['icon' => $iconPath]);
             }
 

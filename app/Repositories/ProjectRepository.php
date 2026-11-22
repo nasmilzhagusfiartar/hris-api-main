@@ -117,8 +117,7 @@ class ProjectRepository implements ProjectRepositoryInterface
             $project = Project::create($projectDto->toArray());
 
             if (isset($data['photo'])) {
-                $filename = Str::uuid().'.'.$data['photo']->extension();
-                $photoPath = $data['photo']->storeAs('project-photos', $filename, 'public');
+                $photoPath = \App\Helpers\SafeUploadHelper::storeImage($data['photo'], 'project-photos', 'public');
                 $project->update(['photo' => $photoPath]);
             }
 
@@ -143,8 +142,7 @@ class ProjectRepository implements ProjectRepositoryInterface
                     Storage::disk('public')->delete($project->photo);
                 }
 
-                $filename = Str::uuid().'.'.$data['photo']->extension();
-                $photoPath = $data['photo']->storeAs('project-photos', $filename, 'public');
+                $photoPath = \App\Helpers\SafeUploadHelper::storeImage($data['photo'], 'project-photos', 'public');
                 $project->update(['photo' => $photoPath]);
             }
 

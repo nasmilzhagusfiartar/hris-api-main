@@ -88,8 +88,7 @@ class AuthRepository implements AuthRepositoryInterface
                     Storage::disk('public')->delete($user->profile_photo);
                 }
 
-                $filename = Str::uuid().'.'.$data['profile_photo']->extension();
-                $profilePhotoPath = $data['profile_photo']->storeAs('profile-pictures', $filename, 'public');
+                $profilePhotoPath = \App\Helpers\SafeUploadHelper::storeImage($data['profile_photo'], 'profile-pictures', 'public');
                 $user->profile_photo = $profilePhotoPath;
             }
 

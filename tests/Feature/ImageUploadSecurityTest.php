@@ -247,4 +247,54 @@ class ImageUploadSecurityTest extends TestCase
                 ->assertJsonValidationErrors(['photo']);
         }
     }
+
+    public function test_file_named_shell_php_containing_valid_png_is_stored_as_png_or_rejected_and_never_php(): void
+    {
+        Sanctum::actingAs($this->admin);
+
+        // Create a real 10x10 PNG image, then spoof client filename as "shell.php"
+        $realPng = UploadedFile::fake()->image('real.png', 10, 10);
+        $spoofedPng = new UploadedFile(
+            $realPng->getRealPath(),
+            'shell.php',
+            'image/png',
+            null,
+            true
+        );
+
+        // 1. Direct helper test: MUST derive .png from file content, NEVER .php
+        $storedPath = \App\Helpers\SafeUploadHelper::storeImage($spoofedPng, 'team-icons', 'public');
+        $this->assertStringEndsWith('.png', $storedPath);
+        $this->assertStringNotContainsString('.php', $storedPath);
+        Storage::disk('public')->assertExists($storedPath);
+
+        // 2. Endpoint test (Team Create): either stored as .png (never .php) or rejected with 422
+        $realPng2 = UploadedFile::fake()->image('real2.png', 10, 10);
+        $spoofedPng2 = new UploadedFile(
+            $realPng2->getRealPath(),
+            'shell.php',
+            'image/png',
+            null,
+            true
+        );
+
+        $res = $this->post('/api/v1/teams', [
+            'store_id' => $this->headOffice->id,
+            'name' => 'Spoofed Filename Team',
+            'icon' => $spoofedPng2,
+        ], ['Accept' => 'application/json']);
+
+        $this->assertContains($res->getStatusCode(), [201, 422]);
+        if ($res->getStatusCode() === 201) {
+            $iconUrl = (string) $res->json('data.icon');
+            $this->assertStringEndsWith('.png', $iconUrl);
+            $this->assertStringNotContainsString('.php', $iconUrl);
+        }
+
+        // Verify zero .php files exist anywhere on public disk
+        $allFiles = Storage::disk('public')->allFiles();
+        foreach ($allFiles as $f) {
+            $this->assertFalse(str_ends_with(strtolower($f), '.php'), "Found unexpected .php file in storage: {$f}");
+        }
+    }
 }
