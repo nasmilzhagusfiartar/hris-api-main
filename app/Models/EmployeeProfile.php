@@ -107,6 +107,13 @@ class EmployeeProfile extends Model
         return $this->hasMany(EmergencyContact::class, 'employee_id');
     }
 
+    public function educations()
+    {
+        return $this->hasMany(EmployeeEducation::class, 'employee_id')
+            ->orderByDesc('is_highest')
+            ->orderByDesc('start_year');
+    }
+
     public function teamMembers()
     {
         return $this->hasMany(TeamMember::class, 'employee_id');

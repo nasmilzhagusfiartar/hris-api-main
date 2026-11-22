@@ -66,6 +66,17 @@ class EmployeeCodeGenerationTest extends TestCase
                     'phone' => '081312345678',
                 ],
             ],
+            'educations' => [
+                [
+                    'level' => 's1',
+                    'institution' => 'Universitas Indonesia',
+                    'major' => 'Management',
+                    'start_year' => 2016,
+                    'end_year' => 2020,
+                    'gpa' => 3.5,
+                    'is_highest' => true,
+                ],
+            ],
         ];
     }
 

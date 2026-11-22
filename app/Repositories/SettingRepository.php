@@ -24,7 +24,7 @@ class SettingRepository implements SettingRepositoryInterface
             'payroll_pay_day' => 28,
             'work_days_by_location' => [
                 'office' => [1, 2, 3, 4, 5],
-                'hybrid' => [1, 2, 3, 4, 5],
+                'event' => [1, 2, 3, 4, 5, 6, 7],
                 'remote' => [1, 2, 3, 4, 5],
                 'store' => [1, 2, 3, 4, 5, 6],
             ],
@@ -59,9 +59,11 @@ class SettingRepository implements SettingRepositoryInterface
             if (is_array($decoded)) {
                 $merged = array_merge($defaults, $decoded);
                 if (isset($decoded['work_days_by_location']) && is_array($decoded['work_days_by_location'])) {
+                    $decodedLocations = $decoded['work_days_by_location'];
+                    unset($decodedLocations['hybrid']);
                     $merged['work_days_by_location'] = array_merge(
                         $defaults['work_days_by_location'],
-                        $decoded['work_days_by_location']
+                        $decodedLocations
                     );
                 }
 

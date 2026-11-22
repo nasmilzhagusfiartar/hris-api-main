@@ -7,7 +7,7 @@ enum WorkLocation: string
     case OFFICE = 'office';
     case STORE = 'store';
     case REMOTE = 'remote';
-    case HYBRID = 'hybrid';
+    case EVENT = 'event';
 
     public function label(): string
     {
@@ -15,7 +15,7 @@ enum WorkLocation: string
             self::OFFICE => 'Office',
             self::STORE => 'Store',
             self::REMOTE => 'Remote',
-            self::HYBRID => 'Hybrid',
+            self::EVENT => 'Event',
         };
     }
 

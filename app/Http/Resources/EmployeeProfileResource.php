@@ -33,6 +33,7 @@ class EmployeeProfileResource extends JsonResource
             'job_information' => new JobInformationResource($this->whenLoaded('jobInformation')),
             'bank_information' => new BankInformationResource($this->whenLoaded('bankInformation')),
             'emergency_contacts' => EmergencyContactResource::collection($this->whenLoaded('emergencyContacts')),
+            'educations' => EmployeeEducationResource::collection($this->whenLoaded('educations')),
             'team' => new TeamResource($this->whenLoaded('team')),
 
             'created_at' => $this->created_at,

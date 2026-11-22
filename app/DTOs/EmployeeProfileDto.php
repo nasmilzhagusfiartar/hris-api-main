@@ -36,7 +36,7 @@ class EmployeeProfileDto
         public readonly string $account_number,
         public readonly string $account_holder_name,
         public readonly ?string $bank_branch,
-        public readonly string $account_type,
+        public readonly ?string $account_type = null,
         // Emergency Contacts
         public readonly array $emergency_contacts = [],
     ) {}
@@ -111,7 +111,7 @@ class EmployeeProfileDto
             account_number: $data['account_number'],
             account_holder_name: $data['account_holder_name'],
             bank_branch: $data['bank_branch'] ?? null,
-            account_type: $data['account_type'],
+            account_type: $data['account_type'] ?? null,
             // Emergency Contacts
             emergency_contacts: $data['emergency_contacts'] ?? [],
         );
@@ -149,7 +149,7 @@ class EmployeeProfileDto
             account_number: $data['account_number'] ?? $existingProfile->bankInformation?->account_number ?? '',
             account_holder_name: $data['account_holder_name'] ?? $existingProfile->bankInformation?->account_holder_name ?? '',
             bank_branch: $data['bank_branch'] ?? $existingProfile->bankInformation?->bank_branch,
-            account_type: $data['account_type'] ?? $existingProfile->bankInformation?->account_type ?? 'savings',
+            account_type: array_key_exists('account_type', $data) ? $data['account_type'] : $existingProfile->bankInformation?->account_type,
             // Emergency Contacts
             emergency_contacts: $data['emergency_contacts'] ?? $existingProfile->emergency_contacts ?? [],
         );

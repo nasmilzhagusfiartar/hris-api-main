@@ -12,6 +12,7 @@ use App\Interfaces\JobInformationRepositoryInterface;
 use App\Interfaces\UserRepositoryInterface;
 use App\Models\BankInformation;
 use App\Models\EmergencyContact;
+use App\Models\EmployeeEducation;
 use App\Models\EmployeeProfile;
 use App\Models\JobInformation;
 use App\Models\Team;
@@ -183,6 +184,7 @@ class EmployeeProfileRepository implements EmployeeProfileRepositoryInterface
             },
             'bankInformation',
             'emergencyContacts',
+            'educations',
         ])
             ->findOrFail($id);
     }
@@ -199,6 +201,7 @@ class EmployeeProfileRepository implements EmployeeProfileRepositoryInterface
             },
             'bankInformation',
             'emergencyContacts',
+            'educations',
         ])
             ->where('user_id', $userId)
             ->firstOrFail();
@@ -217,12 +220,13 @@ class EmployeeProfileRepository implements EmployeeProfileRepositoryInterface
                     $this->createJobInformation($data, $employee->id);
                     $this->createBankInformation($data, $employee->id);
                     $this->createEmergencyContacts($data, $employee->id);
+                    $this->createEducations($data, $employee->id);
                     $this->manageTeamMembership($employee->id, $data['team_id'] ?? null);
 
                     // Clear statistics cache
                     $this->clearEmployeeStatisticsCache();
 
-                    return $employee->load(['user', 'jobInformation.store', 'bankInformation', 'emergencyContacts']);
+                    return $employee->load(['user', 'jobInformation.store', 'bankInformation', 'emergencyContacts', 'educations']);
                 });
             } catch (QueryException $e) {
                 if ($attempt < $maxAttempts && $this->isEmployeeCodeUniqueViolation($e)) {
@@ -249,12 +253,13 @@ class EmployeeProfileRepository implements EmployeeProfileRepositoryInterface
             $this->updateJobInformation($employee->id, $data);
             $this->updateBankInformation($employee->id, $data);
             $this->updateEmergencyContacts($employee->id, $data);
+            $this->updateEducations($employee->id, $data);
             $this->manageTeamMembership($employee->id, $data['team_id'] ?? null);
 
             // Clear statistics cache
             $this->clearEmployeeStatisticsCache();
 
-            return $employee;
+            return $employee->fresh(['user', 'user.roles', 'jobInformation.store', 'jobInformation.team', 'bankInformation', 'emergencyContacts', 'educations']);
         });
     }
 
@@ -349,6 +354,76 @@ class EmployeeProfileRepository implements EmployeeProfileRepositoryInterface
             $emergencyContactDto = EmergencyContactDto::fromArray($contactData);
 
             $this->emergencyContactRepository->create($emergencyContactDto->toArray());
+        }
+    }
+
+    private function createEducations(array $data, int $employeeId): void
+    {
+        $educations = $data['educations'] ?? [];
+        if (! is_array($educations)) {
+            return;
+        }
+
+        foreach ($educations as $edu) {
+            EmployeeEducation::create([
+                'employee_id' => $employeeId,
+                'level' => $edu['level'],
+                'institution' => $edu['institution'],
+                'major' => $edu['major'] ?? null,
+                'start_year' => (int) $edu['start_year'],
+                'end_year' => isset($edu['end_year']) && $edu['end_year'] !== '' ? (int) $edu['end_year'] : null,
+                'gpa' => isset($edu['gpa']) && $edu['gpa'] !== '' ? (float) $edu['gpa'] : null,
+                'is_highest' => ! empty($edu['is_highest']),
+            ]);
+        }
+    }
+
+    private function updateEducations(int $employeeId, array $data): void
+    {
+        $educations = $data['educations'] ?? null;
+        if (! is_array($educations) || empty($educations)) {
+            return;
+        }
+
+        $existingIds = EmployeeEducation::where('employee_id', $employeeId)
+            ->pluck('id')
+            ->toArray();
+
+        $keptIds = [];
+
+        foreach ($educations as $edu) {
+            $payload = [
+                'employee_id' => $employeeId,
+                'level' => $edu['level'],
+                'institution' => $edu['institution'],
+                'major' => $edu['major'] ?? null,
+                'start_year' => (int) $edu['start_year'],
+                'end_year' => isset($edu['end_year']) && $edu['end_year'] !== '' ? (int) $edu['end_year'] : null,
+                'gpa' => isset($edu['gpa']) && $edu['gpa'] !== '' ? (float) $edu['gpa'] : null,
+                'is_highest' => ! empty($edu['is_highest']),
+            ];
+
+            if (! empty($edu['id'])) {
+                $existing = EmployeeEducation::where('employee_id', $employeeId)
+                    ->where('id', $edu['id'])
+                    ->first();
+
+                if ($existing) {
+                    $existing->update($payload);
+                    $keptIds[] = $existing->id;
+                    continue;
+                }
+            }
+
+            $created = EmployeeEducation::create($payload);
+            $keptIds[] = $created->id;
+        }
+
+        $toDelete = array_diff($existingIds, $keptIds);
+        if (! empty($toDelete)) {
+            EmployeeEducation::where('employee_id', $employeeId)
+                ->whereIn('id', $toDelete)
+                ->delete();
         }
     }
 

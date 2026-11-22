@@ -151,7 +151,7 @@ class PayrollRepository implements PayrollRepositoryInterface
 
             $workDaysByLocation = $companySettings['work_days_by_location'] ?? [
                 'office' => [1, 2, 3, 4, 5],
-                'hybrid' => [1, 2, 3, 4, 5],
+                'event' => [1, 2, 3, 4, 5, 6, 7],
                 'remote' => [1, 2, 3, 4, 5],
                 'store' => [1, 2, 3, 4, 5, 6],
             ];
@@ -249,7 +249,9 @@ class PayrollRepository implements PayrollRepositoryInterface
                     : strtolower((string) ($jobInfo->work_location ?? 'office'));
 
                 $allowedDays = $workDaysByLocation[$workLocation]
-                    ?? ($workLocation === 'store' ? [1, 2, 3, 4, 5, 6] : [1, 2, 3, 4, 5]);
+                    ?? ($workLocation === 'event'
+                        ? [1, 2, 3, 4, 5, 6, 7]
+                        : ($workLocation === 'store' ? [1, 2, 3, 4, 5, 6] : [1, 2, 3, 4, 5]));
 
                 $employeeStart = $jobInfo->start_date
                     ? Carbon::parse($jobInfo->start_date)->startOfDay()

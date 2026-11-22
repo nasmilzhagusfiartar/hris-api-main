@@ -5,6 +5,7 @@ namespace App\Http\Requests;
 use App\Enums\AccountType;
 use App\Enums\BankName;
 use App\Enums\Department;
+use App\Enums\EducationLevel;
 use App\Enums\EmploymentType;
 use App\Enums\Gender;
 use App\Enums\JobStatus;
@@ -16,6 +17,32 @@ use Illuminate\Validation\Rule;
 
 class EmployeeProfileUpdateRequest extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        if (is_array($this->input('educations'))) {
+            $normalized = array_map(function ($edu) {
+                if (! is_array($edu)) {
+                    return $edu;
+                }
+                if (array_key_exists('end_year', $edu) && ($edu['end_year'] === '' || $edu['end_year'] === null)) {
+                    $edu['end_year'] = null;
+                }
+                if (array_key_exists('gpa', $edu) && ($edu['gpa'] === '' || $edu['gpa'] === null)) {
+                    $edu['gpa'] = null;
+                }
+                if (array_key_exists('is_highest', $edu)) {
+                    $edu['is_highest'] = filter_var($edu['is_highest'], FILTER_VALIDATE_BOOLEAN);
+                } else {
+                    $edu['is_highest'] = false;
+                }
+
+                return $edu;
+            }, $this->input('educations'));
+
+            $this->merge(['educations' => $normalized]);
+        }
+    }
+
     /**
      * Get the validation rules that apply to the request.
      *
@@ -26,6 +53,7 @@ class EmployeeProfileUpdateRequest extends FormRequest
         $employeeId = $this->route('employee');
         $employee = EmployeeProfile::find($employeeId);
         $userId = $employee?->user_id;
+        $currentYear = (int) date('Y');
 
         return [
             // User fields
@@ -70,7 +98,18 @@ class EmployeeProfileUpdateRequest extends FormRequest
             'account_number' => ['sometimes', 'required', 'string', 'max:50'],
             'account_holder_name' => ['sometimes', 'required', 'string', 'max:255'],
             'bank_branch' => ['nullable', 'string', 'max:255'],
-            'account_type' => ['sometimes', 'required', 'string', 'in:'.implode(',', array_column(AccountType::cases(), 'value'))],
+            'account_type' => ['nullable', 'string', 'in:'.implode(',', array_column(AccountType::cases(), 'value'))],
+
+            // Education History fields (array)
+            'educations' => ['sometimes', 'required', 'array', 'min:1'],
+            'educations.*.id' => ['nullable', 'integer', 'exists:employee_educations,id'],
+            'educations.*.level' => ['required', 'string', 'in:'.implode(',', array_column(EducationLevel::cases(), 'value'))],
+            'educations.*.institution' => ['required', 'string', 'max:255'],
+            'educations.*.major' => ['nullable', 'string', 'max:255'],
+            'educations.*.start_year' => ['required', 'integer', 'min:1950', "max:{$currentYear}"],
+            'educations.*.end_year' => ['nullable', 'integer', 'min:1950', "max:{$currentYear}", 'gte:educations.*.start_year'],
+            'educations.*.gpa' => ['nullable', 'numeric', 'min:0', 'max:4'],
+            'educations.*.is_highest' => ['required', 'boolean'],
 
             // Emergency Contacts fields (array)
             'emergency_contacts' => ['sometimes', 'required', 'array', 'min:1'],
@@ -130,6 +169,29 @@ class EmployeeProfileUpdateRequest extends FormRequest
             'emergency_contacts.*.relationship' => 'Relationship',
             'emergency_contacts.*.phone' => 'Phone Number',
             'emergency_contacts.*.email' => 'Email',
+
+            // Education attributes
+            'educations' => 'Education History',
+            'educations.*.level' => 'Education Level',
+            'educations.*.institution' => 'Institution',
+            'educations.*.major' => 'Major',
+            'educations.*.start_year' => 'Start Year',
+            'educations.*.end_year' => 'End Year',
+            'educations.*.gpa' => 'GPA',
+            'educations.*.is_highest' => 'Highest Education',
         ];
+    }
+
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($validator) {
+            $educations = $this->input('educations');
+            if ($this->has('educations') && is_array($educations) && count($educations) > 0) {
+                $highestCount = count(array_filter($educations, fn ($e) => is_array($e) && ! empty($e['is_highest'])));
+                if ($highestCount !== 1) {
+                    $validator->errors()->add('educations', 'Exactly one education entry must be marked as the highest education.');
+                }
+            }
+        });
     }
 }
