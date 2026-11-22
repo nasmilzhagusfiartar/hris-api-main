@@ -236,15 +236,21 @@ class TeamRepository implements TeamRepositoryInterface
     public function update(string $id, array $data): Team
     {
         return DB::transaction(function () use ($id, $data) {
-            $team = $this->getById($id);
+            $team = Team::findOrFail($id);
             $oldLeaderId = $team->team_lead_id;
+            $oldIcon = $team->icon;
 
             $teamDto = TeamDto::fromArrayForUpdate($data, $team);
             $team->update($teamDto->toArray());
 
-            if (isset($data['icon'])) {
-                if ($team->icon && Storage::disk('public')->exists($team->icon)) {
-                    Storage::disk('public')->delete($team->icon);
+            if (! empty($data['remove_icon']) && ! isset($data['icon'])) {
+                if ($oldIcon && Storage::disk('public')->exists($oldIcon)) {
+                    Storage::disk('public')->delete($oldIcon);
+                }
+                $team->update(['icon' => null]);
+            } elseif (isset($data['icon']) && $data['icon'] instanceof \Illuminate\Http\UploadedFile) {
+                if ($oldIcon && Storage::disk('public')->exists($oldIcon)) {
+                    Storage::disk('public')->delete($oldIcon);
                 }
 
                 $filename = Str::uuid().'.'.$data['icon']->extension();
@@ -252,7 +258,7 @@ class TeamRepository implements TeamRepositoryInterface
                 $team->update(['icon' => $iconPath]);
             }
 
-            if ($team->team_lead_id && $team->team_lead_id !== $oldLeaderId) {
+            if ($team->team_lead_id !== $oldLeaderId) {
                 if ($oldLeaderId) {
                     $oldLeader = User::with('employeeProfile')->find($oldLeaderId);
                     if ($oldLeader && $oldLeader->employeeProfile) {
@@ -263,32 +269,34 @@ class TeamRepository implements TeamRepositoryInterface
                     }
                 }
 
-                $newLeader = User::with('employeeProfile')->find($team->team_lead_id);
-                if ($newLeader && $newLeader->employeeProfile) {
-                    TeamMember::updateOrCreate(
-                        [
-                            'team_id' => $team->id,
-                            'employee_id' => $newLeader->employeeProfile->id,
-                        ],
-                        [
-                            'joined_at' => now(),
-                            'left_at' => null,
-                        ]
-                    );
+                if ($team->team_lead_id) {
+                    $newLeader = User::with('employeeProfile')->find($team->team_lead_id);
+                    if ($newLeader && $newLeader->employeeProfile) {
+                        TeamMember::updateOrCreate(
+                            [
+                                'team_id' => $team->id,
+                                'employee_id' => $newLeader->employeeProfile->id,
+                            ],
+                            [
+                                'joined_at' => now(),
+                                'left_at' => null,
+                            ]
+                        );
+                    }
                 }
             }
 
             // Clear caches
             $this->clearTeamCaches($team->id);
 
-            return $team;
+            return $team->fresh(['leader', 'members']);
         });
     }
 
     public function delete(string $id): Team
     {
         return DB::transaction(function () use ($id) {
-            $team = $this->getById($id);
+            $team = Team::findOrFail($id);
 
             if ($team->icon && Storage::disk('public')->exists($team->icon)) {
                 Storage::disk('public')->delete($team->icon);
