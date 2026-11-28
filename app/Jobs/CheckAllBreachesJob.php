@@ -13,14 +13,14 @@ class CheckAllBreachesJob implements ShouldQueue
     use Queueable;
 
     public int $tries = 1;
-    public int $timeout = 1800;
+    public int $timeout = 840;
 
     /**
      * Create a new job instance.
      */
     public function __construct()
     {
-        //
+        $this->onQueue('scans');
     }
 
     /**
@@ -58,5 +58,15 @@ class CheckAllBreachesJob implements ShouldQueue
 
             throw $e;
         }
+    }
+
+    /**
+     * Handle a job failure.
+     */
+    public function failed(?\Throwable $exception): void
+    {
+        Log::error('CheckAllBreachesJob marked as failed', [
+            'error' => $exception?->getMessage(),
+        ]);
     }
 }

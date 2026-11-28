@@ -59,4 +59,15 @@ class GeneratePayrollJob implements ShouldQueue
      * The maximum number of seconds the job can run.
      */
     public int $timeout = 600; // 10 minutes for large datasets
+
+    /**
+     * Handle a job failure.
+     */
+    public function failed(?\Throwable $exception): void
+    {
+        Log::error('GeneratePayrollJob marked as failed', [
+            'salary_month' => $this->salaryMonth,
+            'error' => $exception?->getMessage(),
+        ]);
+    }
 }

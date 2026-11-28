@@ -82,11 +82,13 @@ test('all six roles enforce Brand Protection, Audit Log, and Email Breach access
         'checked_at' => now(),
     ]);
 
-    foreach ([$admin, $security] as $fullCtiUser) {
+    foreach ([$admin, $security] as $idx => $fullCtiUser) {
         Sanctum::actingAs($fullCtiUser);
 
+        $scanDomain = $idx === 0 ? 'herointiputra.com' : 'toyscity.id';
+
         $this->getJson('/api/v1/cti/brand-scans/latest')->assertStatus(200);
-        $this->postJson('/api/v1/cti/brand-scans', ['domain' => 'herointiputra.com'])->assertStatus(202);
+        $this->postJson('/api/v1/cti/brand-scans', ['domain' => $scanDomain])->assertStatus(202);
         $this->getJson('/api/v1/cti/audit-logs')->assertStatus(200);
         $this->getJson('/api/v1/dashboard/security-statistics')->assertStatus(200);
         $this->postJson('/api/v1/cti/breach-checks/check-all')->assertStatus(202);

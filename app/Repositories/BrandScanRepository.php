@@ -2,6 +2,7 @@
 
 namespace App\Repositories;
 
+use App\Exceptions\BrandScanConflictException;
 use App\Exceptions\UrlscanException;
 use App\Interfaces\BrandScanRepositoryInterface;
 use App\Jobs\RunBrandScanJob;
@@ -22,8 +23,20 @@ class BrandScanRepository implements BrandScanRepositoryInterface
 
     public function createScan(string $domain): BrandScan
     {
+        $normalizedDomain = strtolower(trim($domain));
+
+        $activeScan = BrandScan::with('results')
+            ->where('domain', $normalizedDomain)
+            ->whereIn('status', ['pending', 'running'])
+            ->orderByDesc('id')
+            ->first();
+
+        if ($activeScan !== null) {
+            throw new BrandScanConflictException($activeScan);
+        }
+
         $brandScan = BrandScan::create([
-            'domain' => strtolower(trim($domain)),
+            'domain' => $normalizedDomain,
             'status' => 'pending',
             'total_found' => 0,
         ]);

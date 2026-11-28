@@ -23,6 +23,9 @@ class BrandScanResource extends JsonResource
             'created_at' => $this->created_at instanceof \DateTimeInterface
                 ? $this->created_at->toIso8601String()
                 : $this->created_at,
+            'updated_at' => $this->updated_at instanceof \DateTimeInterface
+                ? $this->updated_at->toIso8601String()
+                : $this->updated_at,
             'results' => BrandScanResultResource::collection($this->whenLoaded('results')),
         ];
     }

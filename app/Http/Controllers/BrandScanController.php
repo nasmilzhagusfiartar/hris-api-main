@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\BrandScanConflictException;
 use App\Exceptions\UrlscanException;
 use App\Helpers\ResponseHelper;
 use App\Http\Requests\BrandScanRequest;
@@ -62,6 +63,13 @@ class BrandScanController extends Controller implements HasMiddleware
                 'Brand scan initiated successfully',
                 new BrandScanResource($brandScan),
                 202
+            );
+        } catch (BrandScanConflictException $e) {
+            return ResponseHelper::jsonResponse(
+                false,
+                $e->getMessage(),
+                new BrandScanResource($e->brandScan),
+                409
             );
         } catch (\Throwable $e) {
             return ResponseHelper::serverError($e);

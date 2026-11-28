@@ -6,13 +6,22 @@ use App\Models\BrandScan;
 use App\Models\BrandScanResult;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Process\Exceptions\ProcessTimedOutException;
+use Illuminate\Queue\MaxAttemptsExceededException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Process;
+use Symfony\Component\Process\Exception\ProcessTimedOutException as SymfonyProcessTimedOutException;
 
 class RunBrandScanJob implements ShouldQueue
 {
     use Queueable;
+
+    public const DNSTWIST_NAMESERVERS = '1.1.1.1,8.8.8.8';
+    public const DNSTWIST_THREADS = '40';
+    public const DNSTWIST_FUZZERS = 'addition,bitsquatting,hyphenation,insertion,omission,repetition,replacement,subdomain,transposition,vowel-swap';
+    public const SAFE_TIMEOUT_MESSAGE = 'Scan timed out. Please try again.';
+    public const SAFE_FAILED_MESSAGE = 'Brand scan failed. Please try again later.';
 
     public int $timeout = 300;
     public int $tries = 1;
@@ -25,6 +34,7 @@ class RunBrandScanJob implements ShouldQueue
     public function __construct(int $brandScanId)
     {
         $this->brandScanId = $brandScanId;
+        $this->onQueue('scans');
     }
 
     /**
@@ -57,22 +67,29 @@ class RunBrandScanJob implements ShouldQueue
             Log::info("Executing dnstwist for domain {$domain}");
 
             // Process dengan argumen ARRAY (bukan string shell)
-            $result = Process::timeout(290)->run([
+            $result = Process::timeout(270)->run([
                 'dnstwist',
                 '--registered',
                 '--format',
                 'json',
+                '--nameservers',
+                self::DNSTWIST_NAMESERVERS,
                 '--threads',
-                '20',
+                self::DNSTWIST_THREADS,
+                '--fuzzers',
+                self::DNSTWIST_FUZZERS,
                 $domain,
             ]);
 
             if (!$result->successful()) {
                 $errorMessage = $result->errorOutput() ?: $result->output();
-                Log::error("dnstwist process failed for {$domain}: {$errorMessage}");
+                Log::error("dnstwist process failed for {$domain}: {$errorMessage}", [
+                    'brand_scan_id' => $this->brandScanId,
+                    'exit_code' => $result->exitCode(),
+                ]);
                 $brandScan->update([
                     'status' => 'failed',
-                    'error' => $errorMessage ?: 'dnstwist process exited with error code ' . $result->exitCode(),
+                    'error' => self::SAFE_FAILED_MESSAGE,
                 ]);
                 return;
             }
@@ -81,10 +98,12 @@ class RunBrandScanJob implements ShouldQueue
             $data = json_decode($output, true);
 
             if (!is_array($data)) {
-                Log::error("dnstwist output invalid JSON for {$domain}: {$output}");
+                Log::error("dnstwist output invalid JSON for {$domain}: {$output}", [
+                    'brand_scan_id' => $this->brandScanId,
+                ]);
                 $brandScan->update([
                     'status' => 'failed',
-                    'error' => 'Failed to parse dnstwist output as JSON',
+                    'error' => self::SAFE_FAILED_MESSAGE,
                 ]);
                 return;
             }
@@ -160,15 +179,57 @@ class RunBrandScanJob implements ShouldQueue
             Log::info("dnstwist scan completed for {$domain}. Total results: " . count($filtered));
         } catch (\Throwable $e) {
             Log::error("RunBrandScanJob exception for {$this->brandScanId}: " . $e->getMessage(), [
+                'exception' => get_class($e),
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            $brandScan->update([
-                'status' => 'failed',
-                'error' => $e->getMessage(),
-            ]);
+            $this->markScanFailed($brandScan, $e);
 
             throw $e;
         }
+    }
+
+    /**
+     * Handle a job failure (including timeouts and MaxAttemptsExceededException).
+     */
+    public function failed(?\Throwable $exception): void
+    {
+        Log::error("RunBrandScanJob failed hook triggered for BrandScan ID {$this->brandScanId}", [
+            'exception' => $exception ? get_class($exception) : null,
+            'error' => $exception?->getMessage(),
+        ]);
+
+        $brandScan = BrandScan::find($this->brandScanId);
+        if (!$brandScan || $brandScan->status === 'done') {
+            return;
+        }
+
+        $this->markScanFailed($brandScan, $exception);
+    }
+
+    private function markScanFailed(BrandScan $brandScan, ?\Throwable $exception): void
+    {
+        $brandScan->update([
+            'status' => 'failed',
+            'error' => $this->resolveSafeErrorMessage($exception),
+        ]);
+    }
+
+    private function resolveSafeErrorMessage(?\Throwable $exception): string
+    {
+        if (
+            $exception instanceof ProcessTimedOutException ||
+            $exception instanceof SymfonyProcessTimedOutException ||
+            $exception instanceof MaxAttemptsExceededException
+        ) {
+            return self::SAFE_TIMEOUT_MESSAGE;
+        }
+
+        $rawMessage = strtolower((string) $exception?->getMessage());
+        if (str_contains($rawMessage, 'timeout') || str_contains($rawMessage, 'timed out')) {
+            return self::SAFE_TIMEOUT_MESSAGE;
+        }
+
+        return self::SAFE_FAILED_MESSAGE;
     }
 }
