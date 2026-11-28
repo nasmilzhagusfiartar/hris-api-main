@@ -212,4 +212,68 @@ class BrandScanQueueAndStaleTest extends TestCase
 
         Queue::assertPushedOn('scans', RunBrandScanJob::class);
     }
+
+    public function test_dnstwist_process_receives_tld_file_and_tld_swap_fuzzer_and_persists_tld_swap_results(): void
+    {
+        $tldPath = RunBrandScanJob::tldFilePath();
+        $this->assertFileExists($tldPath);
+
+        $tlds = array_filter(array_map('trim', file($tldPath, FILE_IGNORE_NEW_LINES) ?: []));
+        foreach (['com', 'id', 'co.id', 'net', 'org', 'web.id', 'my.id', 'biz.id'] as $expectedTld) {
+            $this->assertContains($expectedTld, $tlds);
+        }
+
+        $scan = BrandScan::create([
+            'domain' => 'herointiputra.com',
+            'status' => 'pending',
+            'total_found' => 0,
+        ]);
+
+        $fakeOutput = json_encode([
+            [
+                'fuzzer' => '*original',
+                'domain' => 'herointiputra.com',
+                'dns_a' => ['46.202.184.52'],
+            ],
+            [
+                'fuzzer' => 'tld-swap',
+                'domain' => 'herointiputra.co.id',
+                'dns_a' => ['203.0.113.10'],
+                'dns_mx' => ['mail.herointiputra.co.id'],
+                'dns_ns' => ['ns1.example.id'],
+            ],
+        ]);
+
+        $capturedCommand = null;
+        Process::fake(function ($process) use (&$capturedCommand, $fakeOutput) {
+            $capturedCommand = $process->command;
+
+            return Process::result(output: (string) $fakeOutput, exitCode: 0);
+        });
+
+        $job = new RunBrandScanJob($scan->id);
+        $job->handle();
+
+        $this->assertIsArray($capturedCommand);
+        $this->assertContains('--tld', $capturedCommand);
+        $tldFlagIndex = array_search('--tld', $capturedCommand, true);
+        $this->assertSame($tldPath, $capturedCommand[$tldFlagIndex + 1] ?? null);
+
+        $fuzzersFlagIndex = array_search('--fuzzers', $capturedCommand, true);
+        $this->assertNotFalse($fuzzersFlagIndex);
+        $fuzzersValue = (string) ($capturedCommand[$fuzzersFlagIndex + 1] ?? '');
+        $this->assertStringContainsString('tld-swap', $fuzzersValue);
+        $this->assertStringNotContainsString('homoglyph', $fuzzersValue);
+
+        $scan->refresh();
+        $this->assertSame('done', $scan->status);
+        $this->assertSame(1, $scan->total_found);
+
+        Sanctum::actingAs($this->admin);
+        $showRes = $this->getJson("/api/v1/cti/brand-scans/{$scan->id}");
+        $showRes->assertStatus(200)
+            ->assertJsonPath('data.status', 'done')
+            ->assertJsonPath('data.results.0.domain', 'herointiputra.co.id')
+            ->assertJsonPath('data.results.0.fuzzer', 'tld-swap');
+    }
 }

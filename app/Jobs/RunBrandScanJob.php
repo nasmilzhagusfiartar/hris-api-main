@@ -19,9 +19,14 @@ class RunBrandScanJob implements ShouldQueue
 
     public const DNSTWIST_NAMESERVERS = '1.1.1.1,8.8.8.8';
     public const DNSTWIST_THREADS = '40';
-    public const DNSTWIST_FUZZERS = 'addition,bitsquatting,hyphenation,insertion,omission,repetition,replacement,subdomain,transposition,vowel-swap';
+    public const DNSTWIST_FUZZERS = 'addition,bitsquatting,hyphenation,insertion,omission,repetition,replacement,subdomain,transposition,vowel-swap,tld-swap';
     public const SAFE_TIMEOUT_MESSAGE = 'Scan timed out. Please try again.';
     public const SAFE_FAILED_MESSAGE = 'Brand scan failed. Please try again later.';
+
+    public static function tldFilePath(): string
+    {
+        return resource_path('dnstwist/tlds.txt');
+    }
 
     public int $timeout = 300;
     public int $tries = 1;
@@ -78,6 +83,8 @@ class RunBrandScanJob implements ShouldQueue
                 self::DNSTWIST_THREADS,
                 '--fuzzers',
                 self::DNSTWIST_FUZZERS,
+                '--tld',
+                self::tldFilePath(),
                 $domain,
             ]);
 

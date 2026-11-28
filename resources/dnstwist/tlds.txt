@@ -1,0 +1,17 @@
+com
+id
+co.id
+net
+org
+biz
+info
+shop
+store
+online
+site
+xyz
+top
+app
+web.id
+my.id
+biz.id
